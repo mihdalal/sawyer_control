@@ -3,10 +3,10 @@ import rospy
 from sawyer_control.msg import observations
 import intera_interface as ii
 
-def talker():
-    pub = rospy.Publisher('observations', observations, queue_size=10)
+def observation_publisher():
+    pub = rospy.Publisher('observations_publisher', observations, queue_size=10)
     rospy.init_node('observer', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+    rate = rospy.Rate(10)
     arm = ii.Limb('right')
     while not rospy.is_shutdown():
         angles_dict = arm.joint_angles()
@@ -35,8 +35,9 @@ def talker():
                 orientation.w
             ]
         pub.publish(angles, velocities, torques, endpoint_pose)
+
 if __name__ == '__main__':
     try:
-        talker()
+        observation_publisher()
     except rospy.ROSInterruptException:
         pass

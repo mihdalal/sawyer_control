@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>sawyer_control</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>sawyer_control with safety boxes</description>
   <maintainer email="mdalal@berkeley.edu">Murtaza Dalal</maintainer>
   <license>TODO</license>
