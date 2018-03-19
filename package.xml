@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <name>sawyer_control</name>
+  <version>0.0.0</version>
+  <description>sawyer_control with safety boxes</description>
+  <maintainer email="mdalal@berkeley.edu">Murtaza Dalal</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+</package>
