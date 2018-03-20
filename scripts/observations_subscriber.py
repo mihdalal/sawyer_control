@@ -5,7 +5,7 @@ import intera_interface as ii
 from sawyer_control.msg import observations
 
 
-def callback(observation):
+def observation_callback(observation):
     angles = observation.angles
     velocities = observation.velocities
     torques = observation.torques
@@ -17,11 +17,11 @@ def callback(observation):
     print(endpoint_pose)
 
 
-def listener():
+def init_observations_listener():
     rospy.init_node('observations_subscriber')
-    rospy.Subscriber('observations', observations, callback)
+    rospy.Subscriber('observations', observations, observation_callback)
     rospy.spin()
 
 
 if __name__ == '__main__':
-    listener()
+    init_observations_listener()
