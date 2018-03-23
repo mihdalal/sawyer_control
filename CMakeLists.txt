@@ -58,6 +58,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_service_files(
    FILES
    action.srv
+   getRobotPoseAndJacobian.srv
+   observation.srv
  )
 
 ## Generate actions in the 'action' folder
