@@ -16,7 +16,5 @@ if __name__ == '__main__':
     try:
         actions_publisher()
         send_action([3, 3, 3, 3, 3, 3, 3])
-        # while not rospy.is_shutdown():
-        #     send_action([1, 1, 1, 1, 1, 1, 1])
     except rospy.ROSInterruptException:
         pass
