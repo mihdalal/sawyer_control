@@ -6,7 +6,6 @@ from sawyer_control.msg import actions
 
 
 def execute_action(action_msg):
-    arm = ii.Limb('right')
 
     action = action_msg.torques
 
@@ -14,11 +13,16 @@ def execute_action(action_msg):
     joint_to_values = dict(zip(joint_names, action))
 
     arm.set_joint_torques(joint_to_values)
-    print(action)
+    print(rospy.get_time(), action)
 
 def listener():
+
     rospy.init_node('actions_subscriber', anonymous=True)
     rospy.Subscriber('actions_publisher', actions, execute_action)
+
+    global arm
+    arm = ii.Limb('right')
+
     rospy.spin()
 
 

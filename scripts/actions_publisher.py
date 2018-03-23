@@ -15,6 +15,8 @@ def send_action(action):
 if __name__ == '__main__':
     try:
         actions_publisher()
+        rate = rospy.Rate(1)
+        rate.sleep()
         send_action([3, 3, 3, 3, 3, 3, 3])
     except rospy.ROSInterruptException:
         pass
