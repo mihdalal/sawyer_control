@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <node pkg="sawyer_control" type="actions_subscriber.py" name="actions"/>
+    <node pkg="sawyer_control" type="observations_server.py" name="observation" />
+    <node pkg="sawyer_control" type="sawyer_server.py" name="jacobians" />
+</launch>
