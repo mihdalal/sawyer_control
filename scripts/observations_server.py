@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from sawyer_control.srv import *
+from sawyer_control.srv import observation
 import rospy
 import intera_interface as ii
 
@@ -33,9 +33,7 @@ def get_observation(unused):
         orientation.z,
         orientation.w
     ]
-
-    print(angles)
-
+    
     return observationResponse(angles, velocities, torques, endpoint_pose)
 
 def observation_server():
