@@ -38,9 +38,6 @@ class PositionPDController(object):
             self._springs[joint] = 30
             self._damping[joint] = 4
 
-    def _set_des_pos(self, des_angles_dict):
-        self._des_angles = des_angles_dict
-
     def adjust_springs(self):
         for joint in list(self._des_angles.keys()):
             t_delta = rospy.get_time() - self.t_release
@@ -51,6 +48,22 @@ class PositionPDController(object):
                     self._springs[joint] = self.max_stiffness
             else:
                 print("warning t_delta smaller than zero!")
+
+    def get_angles(self, ee_pos):
+        target_pos = list(target_pos.angles)
+        O = Quaternion(
+            x=-0.742656074236,
+            y=0.667990049664,
+            z=0.00084777749623,
+            w= 0.047439753615,
+        )
+
+        pose = get_pose_stamped(target_pos[0], target_pos[1], target_pos[2], O)
+        if not self.is_shutdown:
+            ik_angles = get_joint_angles(pose, self._limb.joint_angles())
+            # print("ik_angles", ik_angles)
+            # print("current angle", self._limb.joint_angles())
+            return ik_angles
 
     def _compute_pd_forces(self, current_joint_angles, current_joint_velocities, desired_ee_pos):
         """
@@ -65,7 +78,7 @@ class PositionPDController(object):
 
         # create our command dict
         cmd = dict()
-        self._des_angles =
+        self._des_angles = self.get_angles(desired_ee_pos)
         # calculate current forces
         for idx, joint in enumerate(self._limb_joint_names):
             # spring portion
