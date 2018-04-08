@@ -5,7 +5,6 @@ import intera_interface as ii
 
 def get_observation(unused):
     joint_names = arm.joint_names()
-
     angles_dict = arm.joint_angles()
     angles = [
         angles_dict[joint] for joint in joint_names

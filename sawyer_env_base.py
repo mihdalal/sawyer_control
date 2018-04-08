@@ -61,14 +61,8 @@ box_lows = np.array([-0.5888, -.6704, .04259])
 box_highs = np.array([.7506, 0.87129, .9755])
 
 #TODO: figure out where this is being used and why it is _l instead _j
-joint_names = [
-    '_l2',
-    '_l3',
-    '_l4',
-    '_l5',
-    '_l6',
-    '_hand'
-]
+joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
+
 
 class SawyerEnv(Env, Serializable):
     def __init__(
@@ -82,10 +76,9 @@ class SawyerEnv(Env, Serializable):
             safety_force_temp=1.05,
             safe_reset_length=150,
             reward_magnitude=1,
-            use_safety_checks=True,
+            use_safety_checks=False,
     ):
-        # import ipdb; ipdb.set_trace()
-        # Serializable.quick_init(self, locals())
+        Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
 
         self.arm_name = 'right'
@@ -142,6 +135,7 @@ class SawyerEnv(Env, Serializable):
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
         ERROR_THRESHOLD = .1*np.ones(7)
+        print(errors)
         is_within_threshold = (errors < ERROR_THRESHOLD).all()
         return is_within_threshold
 
@@ -348,12 +342,11 @@ class SawyerEnv(Env, Serializable):
 
     def get_pose_jacobian_dict(self, poses, jacobians):
         pose_jacobian_dict = {}
-        counter = 0
         pose_counter = 0
         jac_counter = 0
         poses = np.array(poses)
         jacobians = np.array(jacobians)
-        for i in range(len(joint_names)):
+        for joint in joint_names[2:]:
             pose = poses[pose_counter:pose_counter + 3]
             jacobian = np.array([
                 jacobians[jac_counter:jac_counter + 7],
@@ -362,8 +355,7 @@ class SawyerEnv(Env, Serializable):
             ])
             pose_counter += 3
             jac_counter += 21
-            pose_jacobian_dict['right' + joint_names[counter]] = [pose, jacobian]
-            counter += 1
+            pose_jacobian_dict[joint] = [pose, jacobian]
         return pose_jacobian_dict
 
     def _get_positions_from_pose_jacobian_dict(self):

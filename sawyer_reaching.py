@@ -1,7 +1,9 @@
 from collections import OrderedDict
 import numpy as np
-from railrl.envs.ros.sawyer_env_base import SawyerEnv
+from sawyer_env_base import SawyerEnv
 from rllab.spaces.box import Box
+
+from serializable import Serializable
 
 JOINT_ANGLES_HIGH = np.array([
     1.70167993,
@@ -70,6 +72,7 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
                  randomize_goal_on_reset=False,
                  **kwargs
                  ):
+        Serializable.quick_init(self, locals())
         self.randomize_goal_on_reset = randomize_goal_on_reset
         super().__init__(**kwargs)
 
@@ -170,6 +173,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
                  randomize_goal_on_reset=False,
                  **kwargs
                  ):
+        Serializable.quick_init(self, locals())
         self.randomize_goal_on_reset = randomize_goal_on_reset
         super().__init__(self, **kwargs)
 
