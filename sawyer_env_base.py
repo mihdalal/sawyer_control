@@ -3,7 +3,7 @@ import time
 from collections import OrderedDict
 import numpy as np
 import rospy
-from experiments.murtaza.ros.Sawyer.pd_controller import PDController
+from joint_angle_pd_controller import PDController
 from railrl.misc.eval_util import create_stats_ordered_dict
 from serializable import Serializable
 from rllab.spaces.box import Box
