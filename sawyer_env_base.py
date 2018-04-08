@@ -12,54 +12,10 @@ from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from rllab.envs.base import Env
 
-import pdb
-
-JOINT_ANGLES_HIGH = np.array([
-    1.70167993,
-    1.04700017,
-    3.0541791,
-    2.61797006,
-    3.05900002,
-    2.09400001,
-    3.05899961
-])
-
-JOINT_ANGLES_LOW = np.array([
-    -1.70167995,
-    -2.14700025,
-    -3.0541801,
-    -0.04995198,
-    -3.05900015,
-    -1.5708003,
-    -3.05899989
-])
-
-JOINT_VEL_HIGH = 2*np.ones(7)
-JOINT_VEL_LOW = -2*np.ones(7)
-
-MAX_TORQUES = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
-JOINT_TORQUE_HIGH = MAX_TORQUES
-JOINT_TORQUE_LOW = -1*MAX_TORQUES
-
-JOINT_VALUE_HIGH = {
-    'position': JOINT_ANGLES_HIGH,
-    'velocity': JOINT_VEL_HIGH,
-    'torque': JOINT_TORQUE_HIGH,
-}
-JOINT_VALUE_LOW = {
-    'position': JOINT_ANGLES_LOW,
-    'velocity': JOINT_VEL_LOW,
-    'torque': JOINT_TORQUE_LOW,
-}
-
-joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
-
-
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
             update_hz=20,
-            action_mode='torque',
             safety_box=True,
             reward='huber',
             huber_delta=10,
@@ -74,6 +30,7 @@ class SawyerEnv(Env, Serializable):
         
         self.box_lows = np.array([-0.5888, -.6704, .04259])
         self.box_highs = np.array([.7506, 0.87129, .9755])
+        self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
         self.arm_name = 'right'
         self.use_safety_checks = use_safety_checks
@@ -85,9 +42,13 @@ class SawyerEnv(Env, Serializable):
         self.safety_force_temp = safety_force_temp
         self.PDController = PDController()
 
+        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
+        joint_torque_high = max_torques
+        joint_torque_low = -1 * max_torques
+
         self._action_space = Box(
-            JOINT_VALUE_LOW[action_mode],
-            JOINT_VALUE_HIGH[action_mode]
+            joint_torque_low,
+            joint_torque_high
         )
 
         if reward == 'MSE':
@@ -125,7 +86,7 @@ class SawyerEnv(Env, Serializable):
     def _reset_within_threshold(self):
         desired_neutral = self.PDController._des_angles
         # note PDController.des_angles is a map between joint name to angle while joint_angles is a list of angles
-        desired_neutral = np.array([desired_neutral[joint] for joint in joint_names])
+        desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
         ERROR_THRESHOLD = .15*np.ones(7)
@@ -338,7 +299,7 @@ class SawyerEnv(Env, Serializable):
         jac_counter = 0
         poses = np.array(poses)
         jacobians = np.array(jacobians)
-        for joint in joint_names[2:]:
+        for joint in self.joint_names[2:]:
             pose = poses[pose_counter:pose_counter + 3]
             jacobian = np.array([
                 jacobians[jac_counter:jac_counter + 7],

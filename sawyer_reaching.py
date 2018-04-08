@@ -67,13 +67,19 @@ END_EFFECTOR_VALUE_HIGH = {
     'position': END_EFFECTOR_POS_HIGH,
     'angle': END_EFFECTOR_ANGLE_HIGH,
 }
+
 class SawyerJointSpaceReachingEnv(SawyerEnv):
     def __init__(self,
+                 desired = None,
                  randomize_goal_on_reset=False,
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
-        self.randomize_goal_on_reset = randomize_goal_on_reset
+        if desired is None:
+            self._randomize_desired_angles()
+        else:
+            self.desired = desired
+        self._randomize_goal_on_reset = randomize_goal_on_reset
         super().__init__(**kwargs)
 
     def reward(self, action):
@@ -143,10 +149,6 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
             JOINT_VALUE_HIGH['position'],
         ))
 
-        if self.randomize_goal_on_reset:
-            self._randomize_desired_angles()
-        else:
-            self.desired = np.ones(7)
         self._observation_space = Box(lows, highs)
 
     def _randomize_desired_angles(self):
@@ -164,7 +166,7 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         self._safe_move_to_neutral()
         self.previous_angles = self._joint_angles()
         self.in_reset = False
-        if self.randomize_goal_on_reset:
+        if self._randomize_goal_on_reset:
             self._randomize_desired_angles()
         return self._get_observation()
 
