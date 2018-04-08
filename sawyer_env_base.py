@@ -60,7 +60,6 @@ JOINT_VALUE_LOW = {
 box_lows = np.array([-0.5888, -.6704, .04259])
 box_highs = np.array([.7506, 0.87129, .9755])
 
-#TODO: figure out where this is being used and why it is _l instead _j
 joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
 
@@ -131,11 +130,10 @@ class SawyerEnv(Env, Serializable):
     def _reset_within_threshold(self):
         desired_neutral = self.PDController._des_angles
         # note PDController.des_angles is a map between joint name to angle while joint_angles is a list of angles
-        desired_neutral = np.array(list(desired_neutral.values()))
+        desired_neutral = np.array([desired_neutral[joint] for joint in joint_names])
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
-        ERROR_THRESHOLD = .1*np.ones(7)
-        print(errors)
+        ERROR_THRESHOLD = .15*np.ones(7)
         is_within_threshold = (errors < ERROR_THRESHOLD).all()
         return is_within_threshold
 
@@ -304,7 +302,6 @@ class SawyerEnv(Env, Serializable):
                 self.unexpected_velocity_check()
 
     def previous_angles_reset_check(self):
-        # TODO: tune this check so that reset cuts off early but at the right time
         close_to_desired_reset_pos = self._reset_within_threshold()
         _, velocities, _, _ = self.request_observation()
         velocities = np.abs(np.array(velocities))
