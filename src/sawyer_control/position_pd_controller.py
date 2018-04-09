@@ -15,7 +15,8 @@ class PositionPDController(object):
         # initialize parameters
         self._springs = dict()
         self._damping = dict()
-        
+        self._des_angles = dict()
+
         # create cuff disable publisher
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
@@ -66,11 +67,10 @@ class PositionPDController(object):
         cmd = dict()
         des_angles = self.get_angles(desired_ee_pos, current_joint_angles)
         # calculate current forces
-
-        des_angles = dict(zip(self._limb_joint_names, des_angles))
+        self._des_angles = dict(zip(self._limb_joint_names, des_angles))
         for idx, joint in enumerate(self._limb_joint_names):
             # spring portion
-            cmd[joint] = self._springs[joint] * (des_angles[joint] -
+            cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
                                                  current_joint_angles[idx])
             # damping portion
             cmd[joint] -= self._damping[joint] * current_joint_velocities[idx]
@@ -91,4 +91,5 @@ class PositionPDController(object):
                 resp.joint_angles
             )
         except rospy.ServiceException as e:
+            import ipdb; ipdb.set_trace()
             print(e)

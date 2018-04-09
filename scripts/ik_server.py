@@ -32,7 +32,6 @@ def inverse_kinematics_server():
 
     global arm
     arm = ii.Limb('right')
-
     s = rospy.Service('ik', ik, compute_joint_angle)
     rospy.spin()
 
