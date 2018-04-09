@@ -74,7 +74,9 @@ class SawyerEnv(Env, Serializable):
         if self.action_mode == 'position':
             cur_pos, cur_vel, _, ee_pos = self.request_observation()
             target_ee_pos = ee_pos + action
+            print(target_ee_pos)
             action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
+            print(action)
             return self._torque_act(action)
         else:
             return self._torque_act(action)

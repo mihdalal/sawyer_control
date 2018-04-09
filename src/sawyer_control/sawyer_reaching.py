@@ -236,3 +236,9 @@ class SawyerXYZReachingEnv(SawyerEnv):
         if self.randomize_goal_on_reset:
             self._randomize_desired_end_effector_pose()
         return self._get_observation()
+
+
+
+
+
+
