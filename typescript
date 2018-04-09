@@ -1,0 +1,175 @@
+Script started on Sun 08 Apr 2018 04:44:49 PM PDT
+__ros_prompt: command not found
+[01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyer_control $[00m ls[K[Kcd scripts/
+__ros_prompt: command not found
+[01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyer_control/scripts $[00m l;s[K[Ks
+[0m[01;32mactions_publisher.py[0m   ik_server.py        [01;32mjacobian_server.py[0m
+[01;32mactions_subscriber.py[0m  __init__.py         [01;32mobservations_client.py[0m
+ik_client.py           jacobian_client.py  [01;32mobservations_server.py[0m
+__ros_prompt: command not found
+[01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyer_control/scripts $[00m python ik_server.py 
+Traceback (most recent call last):
+  File "ik_server.py", line 2, in <module>
+    from sawyer_control.srv import *
+ImportError: No module named sawyer_control.srv
+__ros_prompt: command not found
+[01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyer_control/scripts $[00m saw
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws $[00m roscd  sawyerC_[K[K_controlscr[K[K/[K[K/scripts/
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m ls
+[0m[01;32mactions_publisher.py[0m   ik_server.py        [01;32mjacobian_server.py[0m
+[01;32mactions_subscriber.py[0m  __init__.py         [01;32mobservations_client.py[0m
+ik_client.py           jacobian_client.py  [01;32mobservations_server.py[0m
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m python ik_server.py 
+[31m[ERROR] [WallTime: 1523231145.369460] Error processing request: field joint_angles must be a list or tuple type
+['Traceback (most recent call last):\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_service.py", line 627, in _handle_request\n    transport.send_message(response, self.seq)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_base.py", line 634, in send_message\n    serialize_message(self.write_buff, seq, msg)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/msg.py", line 152, in serialize_message\n    msg.serialize(b)\n', '  File "/home/mdalal/catkin_ws/devel/lib/python2.7/dist-packages/sawyer_control/srv/_ik.py", line 194, in serialize\n    except struct.error as se: self._check_types(struct.error("%s: \'%s\' when writing \'%s\'" % (type(se), str(se), str(locals().get(\'_x\', self)))))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 331, in _check_types\n    check_type(n, t, getattr(self, n))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 251, in check_type\n    raise SerializationError(\'field %s must be a list or tuple type\'%field_name)\n', 'SerializationError: field joint_angles must be a list or tuple type\n']
+[0m^C[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m python ik_server.py 
+[31m[ERROR] [WallTime: 1523231313.544882] Error processing request: field joint_angles must be a list or tuple type
+['Traceback (most recent call last):\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_service.py", line 627, in _handle_request\n    transport.send_message(response, self.seq)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_base.py", line 634, in send_message\n    serialize_message(self.write_buff, seq, msg)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/msg.py", line 152, in serialize_message\n    msg.serialize(b)\n', '  File "/home/mdalal/catkin_ws/devel/lib/python2.7/dist-packages/sawyer_control/srv/_ik.py", line 194, in serialize\n    except struct.error as se: self._check_types(struct.error("%s: \'%s\' when writing \'%s\'" % (type(se), str(se), str(locals().get(\'_x\', self)))))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 331, in _check_types\n    check_type(n, t, getattr(self, n))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 251, in check_type\n    raise SerializationError(\'field %s must be a list or tuple type\'%field_name)\n', 'SerializationError: field joint_angles must be a list or tuple type\n']
+[0m^C[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m CHMOX [K[K[K[K[K[Kchmox [K[Kd =[K+x ik_server.py 
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m chmod +x ik_client.py 
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m chmod +x ik_client.py server[C[C[C[C[2Ppython[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+]0;IPython: sawyer_control/scripts> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(14)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     13 [0;31m    [0mipdb[0m[0;34m.[0m[0mset_trace[0m[0;34m([0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m---> 14 [0;31m    [0mee_pos[0m [0;34m=[0m [0mreq[0m[0;34m.[0m[0mee_pos[0m[0;34m[0m[0m
+[0m[0;32m     15 [0;31m    [0mcurr_joint_angles[0m [0;34m=[0m [0mreq[0m[0;34m.[0m[0mcurr_joint_angles[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0mq[0m[?12l[?25h[?25l[9D[0m[J[0;38;5;28mipdb> [0mr[0me[0mq[9D[0m
+[J[?7h[0m[?12l[?25h[?2004lee_pos: [0.4321299195289612, 0.15649043023586273, 0.9493153691291809, 0.5502556562423706, 0.7773376107215881, 0.15638993680477142, 0.26173874735832214]
+curr_joint_angles: [0.1400449275970459, -1.2412344217300415, -0.6551963090896606, 0.33103320002555847, 0.4254199266433716, 1.894338846206665, 2.8274471759796143]
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(15)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     14 [0;31m    [0mee_pos[0m [0;34m=[0m [0mreq[0m[0;34m.[0m[0mee_pos[0m[0;34m[0m[0m
+[0m[0;32m---> 15 [0;31m    [0mcurr_joint_angles[0m [0;34m=[0m [0mreq[0m[0;34m.[0m[0mcurr_joint_angles[0m[0;34m[0m[0m
+[0m[0;32m     16 [0;31m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(17)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     16 [0;31m[0;34m[0m[0m
+[0m[0;32m---> 17 [0;31m    Q = Quaternion(
+[0m[0;32m     18 [0;31m        [0mx[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m3[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0mp[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[12D[0m[J[0;38;5;28mipdb> [0me[0me[0m_[0mp[0mo[0ms[12D[0m
+[J[?7h[0m[?12l[?25h[?2004l(0.4321299195289612, 0.15649043023586273, 0.9493153691291809, 0.5502556562423706, 0.7773376107215881, 0.15638993680477142, 0.26173874735832214)
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0mq[0m[?12l[?25h[?25l[9D[0m[J[0;38;5;28mipdb> [0mr[0me[0mq[9D[0m
+[J[?7h[0m[?12l[?25h[?2004lee_pos: [0.4321299195289612, 0.15649043023586273, 0.9493153691291809, 0.5502556562423706, 0.7773376107215881, 0.15638993680477142, 0.26173874735832214]
+curr_joint_angles: [0.1400449275970459, -1.2412344217300415, -0.6551963090896606, 0.33103320002555847, 0.4254199266433716, 1.894338846206665, 2.8274471759796143]
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mj[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0mi[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mt[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0ma[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mg[0m[?12l[?25h[?25l[0ml[0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mc[0m[?12l[?25h[?25l[0mu[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0mj[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0mi[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mt[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0ma[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mg[0m[?12l[?25h[?25l[0ml[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[23D[0m[J[0;38;5;28mipdb> [0mc[0mu[0mr[0mr[0m_[0mj[0mo[0mi[0mn[0mt[0m_[0ma[0mn[0mg[0ml[0me[0ms[23D[0m
+[J[?7h[0m[?12l[?25h[?2004l(0.1400449275970459, -1.2412344217300415, -0.6551963090896606, 0.33103320002555847, 0.4254199266433716, 1.894338846206665, 2.8274471759796143)
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(18)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     17 [0;31m    Q = Quaternion(
+[0m[0;32m---> 18 [0;31m        [0mx[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m3[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m     19 [0;31m        [0my[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m4[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(19)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     18 [0;31m        [0mx[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m3[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m---> 19 [0;31m        [0my[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m4[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m     20 [0;31m        [0mz[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m5[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(20)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     19 [0;31m        [0my[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m4[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m---> 20 [0;31m        [0mz[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m5[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m     21 [0;31m        [0mw[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m6[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(21)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     20 [0;31m        [0mz[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m5[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m---> 21 [0;31m        [0mw[0m[0;34m=[0m[0mee_pos[0m[0;34m[[0m[0;36m6[0m[0;34m][0m[0;34m,[0m[0;34m[0m[0m
+[0m[0;32m     22 [0;31m    )
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(24)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     23 [0;31m[0;34m[0m[0m
+[0m[0;32m---> 24 [0;31m    [0mpose[0m [0;34m=[0m [0mget_pose_stamped[0m[0;34m([0m[0mee_pos[0m[0;34m[[0m[0;36m0[0m[0;34m][0m[0;34m,[0m [0mee_pos[0m[0;34m[[0m[0;36m1[0m[0;34m][0m[0;34m,[0m [0mee_pos[0m[0;34m[[0m[0;36m2[0m[0;34m][0m[0;34m,[0m [0mQ[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m     25 [0;31m    [0mcurr_joint_angles[0m [0;34m=[0m [0mdict[0m[0;34m([0m[0mzip[0m[0;34m([0m[0mjoint_names[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m)[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(25)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     24 [0;31m    [0mpose[0m [0;34m=[0m [0mget_pose_stamped[0m[0;34m([0m[0mee_pos[0m[0;34m[[0m[0;36m0[0m[0;34m][0m[0;34m,[0m [0mee_pos[0m[0;34m[[0m[0;36m1[0m[0;34m][0m[0;34m,[0m [0mee_pos[0m[0;34m[[0m[0;36m2[0m[0;34m][0m[0;34m,[0m [0mQ[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m---> 25 [0;31m    [0mcurr_joint_angles[0m [0;34m=[0m [0mdict[0m[0;34m([0m[0mzip[0m[0;34m([0m[0mjoint_names[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m     26 [0;31m    [0mik_angles[0m [0;34m=[0m [0mget_joint_angles[0m[0;34m([0m[0mpose[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mp[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[10D[0m[J[0;38;5;28mipdb> [0mp[0mo[0ms[0me[10D[0m
+[J[?7h[0m[?12l[?25h[?2004lheader: 
+  seq: 0
+  stamp: 
+    secs: 1523231568
+    nsecs:  67758083
+  frame_id: base
+pose: 
+  position: 
+    x: 0.432129919529
+    y: 0.156490430236
+    z: 0.949315369129
+  orientation: 
+    x: 0.550255656242
+    y: 0.777337610722
+    z: 0.156389936805
+    w: 0.261738747358
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0mp[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[12D[0m[J[0;38;5;28mipdb> [0me[0me[0m_[0mp[0mo[0ms[12D[0m
+[J[?7h[0m[?12l[?25h[?2004l(0.4321299195289612, 0.15649043023586273, 0.9493153691291809, 0.5502556562423706, 0.7773376107215881, 0.15638993680477142, 0.26173874735832214)
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(26)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     25 [0;31m    [0mcurr_joint_angles[0m [0;34m=[0m [0mdict[0m[0;34m([0m[0mzip[0m[0;34m([0m[0mjoint_names[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m---> 26 [0;31m    [0mik_angles[0m [0;34m=[0m [0mget_joint_angles[0m[0;34m([0m[0mpose[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m     27 [0;31m    [0;32mreturn[0m [0mikResponse[0m[0;34m([0m[0mik_angles[0m[0;34m)[0m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mc[0m[?12l[?25h[?25l[0mu[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0mr[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0mj[0m[?12l[?25h[?25l[0mo[0m[?12l[?25h[?25l[0mi[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mt[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0ma[0mn[0mg[0ml[0me[0ms[0m[?12l[?25h[?25l[23D[0m[J[0;38;5;28mipdb> [0mc[0mu[0mr[0mr[0m_[0mj[0mo[0mi[0mn[0mt[0m_[0ma[0mn[0mg[0ml[0me[0ms[23D[0m
+[J[?7h[0m[?12l[?25h[?2004l{'right_j6': 2.8274471759796143, 'right_j5': 1.894338846206665, 'right_j4': 0.4254199266433716, 'right_j3': 0.33103320002555847, 'right_j2': -0.6551963090896606, 'right_j1': -1.2412344217300415, 'right_j0': 0.1400449275970459}
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mi[0m[?12l[?25h[?25l[0mk[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0ma[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mg[0m[?12l[?25h[?25l[0ml[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m [0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[7D[0m[J[0;38;5;28mipdb> [0mn[7D[0m
+[J[?7h[0m[?12l[?25h[?2004l> [0;32m/home/mdalal/catkin_ws/src/sawyer_control/scripts/ik_server.py[0m(27)[0;36mcompute_joint_angle[0;34m()[0m
+[0;32m     26 [0;31m    [0mik_angles[0m [0;34m=[0m [0mget_joint_angles[0m[0;34m([0m[0mpose[0m[0;34m,[0m [0mcurr_joint_angles[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m---> 27 [0;31m    [0;32mreturn[0m [0mikResponse[0m[0;34m([0m[0mik_angles[0m[0;34m)[0m[0;34m[0m[0m
+[0m[0;32m     28 [0;31m[0;34m[0m[0m
+[0m
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0mi[0m[?12l[?25h[?25l[0mk[0m[?12l[?25h[?25l[0m_[0m[?12l[?25h[?25l[0ma[0m[?12l[?25h[?25l[0mn[0m[?12l[?25h[?25l[0mg[0m[?12l[?25h[?25l[0ml[0m[?12l[?25h[?25l[0me[0m[?12l[?25h[?25l[0ms[0m[?12l[?25h[?25l[15D[0m[J[0;38;5;28mipdb> [0mi[0mk[0m_[0ma[0mn[0mg[0ml[0me[0ms[15D[0m
+[J[?7h[0m[?12l[?25h[?2004l{'right_j6': 2.827447265625, 'right_j5': 1.8943388671875, 'right_j4': 0.425419921875, 'right_j3': 0.331033203125, 'right_j2': -0.6551962890625, 'right_j1': -1.241234375, 'right_j0': 0.140044921875}
+[?1l[6n[?2004h[?25l[?7l[0m[0m[J[0;38;5;28mipdb> [6D[6C[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[0m[?12l[?25h[?25l[6D[0m[J[0;38;5;102mipdb>                                                                          [79C [0m
+[J[?7h[0m[?12l[?25h[?2004l
+[31m[ERROR] [WallTime: 1523231639.385536] Error processing request: 
+['Traceback (most recent call last):\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_service.py", line 623, in _handle_request\n    response = convert_return_to_response(self.handler(request), self.response_class)\n', '  File "ik_server.py", line 27, in compute_joint_angle\n    return ikResponse(ik_angles)\n', '  File "ik_server.py", line 27, in compute_joint_angle\n    return ikResponse(ik_angles)\n', '  File "/usr/lib/python2.7/bdb.py", line 49, in trace_dispatch\n    return self.dispatch_line(frame)\n', '  File "/usr/lib/python2.7/bdb.py", line 68, in dispatch_line\n    if self.quitting: raise BdbQuit\n', 'BdbQuit\n']
+[0m^CError in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/atexit.py", line 24, in _run_exitfuncs
+    func(*targs, **kargs)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/interactiveshell.py", line 3215, in atexit_operations
+    self.history_manager.end_session()
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 580, in end_session
+    self.writeout_cache()
+  File "<decorator-gen-23>", line 2, in writeout_cache
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 60, in needs_sqlite
+    return f(self, *a, **kw)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 786, in writeout_cache
+    self._writeout_input_cache(conn)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 770, in _writeout_input_cache
+    (self.session_number,)+line)
+ProgrammingError: SQLite objects created in a thread can only be used in that same thread.The object was created in thread id 139756109219584 and this is thread id 139756746123072
+Error in sys.exitfunc:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/atexit.py", line 24, in _run_exitfuncs
+    func(*targs, **kargs)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/interactiveshell.py", line 3215, in atexit_operations
+    self.history_manager.end_session()
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 580, in end_session
+    self.writeout_cache()
+  File "<decorator-gen-23>", line 2, in writeout_cache
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 60, in needs_sqlite
+    return f(self, *a, **kw)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 786, in writeout_cache
+    self._writeout_input_cache(conn)
+  File "/usr/local/lib/python2.7/dist-packages/IPython/core/history.py", line 770, in _writeout_input_cache
+    (self.session_number,)+line)
+sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in that same thread.The object was created in thread id 139756109219584 and this is thread id 139756746123072
+[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m python ik_server.py 
+[31m[ERROR] [WallTime: 1523231654.740659] Error processing request: field joint_angles must be a list or tuple type
+['Traceback (most recent call last):\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_service.py", line 627, in _handle_request\n    transport.send_message(response, self.seq)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/impl/tcpros_base.py", line 634, in send_message\n    serialize_message(self.write_buff, seq, msg)\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/rospy/msg.py", line 152, in serialize_message\n    msg.serialize(b)\n', '  File "/home/mdalal/catkin_ws/devel/lib/python2.7/dist-packages/sawyer_control/srv/_ik.py", line 194, in serialize\n    except struct.error as se: self._check_types(struct.error("%s: \'%s\' when writing \'%s\'" % (type(se), str(se), str(locals().get(\'_x\', self)))))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 331, in _check_types\n    check_type(n, t, getattr(self, n))\n', '  File "/opt/ros/indigo/lib/python2.7/dist-packages/genpy/message.py", line 251, in check_type\n    raise SerializationError(\'field %s must be a list or tuple type\'%field_name)\n', 'SerializationError: field joint_angles must be a list or tuple type\n']
+[0m^C[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m python ik_server.py 
+[0.140044921875, -1.241234375, -0.6551962890625, 0.331033203125, 0.425419921875, 1.8943388671875, 2.827447265625]
+[0.140044921875, -1.241234375, -0.6551962890625, 0.331033203125, 0.425419921875, 1.8943388671875, 2.827447265625]
+^C[00;33m[intera - http://021704CP00015.local:11311][00m [01;32mmdalal@boltzmann[01;34m ~/catkin_ws/src/sawyyer_control/scripts $[00m exit
+__ros_prompt: command not found
+[01;32mmdalal@boltzmann[01;34m ~ $[00m exit
+
+Script done on Sun 08 Apr 2018 05:31:06 PM PDT

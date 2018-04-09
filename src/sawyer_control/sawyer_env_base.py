@@ -3,7 +3,7 @@ import time
 from collections import OrderedDict
 import numpy as np
 import rospy
-from joint_angle_pd_controller import PDController
+from joint_angle_pd_controller import AnglePDController
 from railrl.misc.eval_util import create_stats_ordered_dict
 from serializable import Serializable
 from rllab.spaces.box import Box
@@ -12,10 +12,14 @@ from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from rllab.envs.base import Env
 
+from sawyer_control.position_pd_controller import PositionPDController
+
+
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
             update_hz=20,
+            action_mode='torque',
             safety_box=True,
             reward='huber',
             huber_delta=10,
@@ -40,15 +44,17 @@ class SawyerEnv(Env, Serializable):
         self.huber_delta = huber_delta
         self.safety_force_magnitude = safety_force_magnitude
         self.safety_force_temp = safety_force_temp
-        self.PDController = PDController()
+        self.AnglePDController = AnglePDController()
+        self.PositionPDController = PositionPDController()
+        self.action_mode = action_mode
 
         max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
-        joint_torque_high = max_torques
-        joint_torque_low = -1 * max_torques
+        self.joint_torque_high = max_torques
+        self.joint_torque_low = -1 * max_torques
 
         self._action_space = Box(
-            joint_torque_low,
-            joint_torque_high
+            self.joint_torque_low,
+            self.joint_torque_high
         )
 
         if reward == 'MSE':
@@ -58,12 +64,22 @@ class SawyerEnv(Env, Serializable):
         else:
             self.reward_function = self._Norm_reward
 
+        self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
         self.amplify = np.ones(1) #by default, no amplifications
 
     def _act(self, action):
+        if self.action_mode == 'position':
+            cur_pos, cur_vel, _, ee_pos = self.request_observation()
+            target_ee_pos = ee_pos + action
+            action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
+            return self._torque_act(action)
+        else:
+            return self._torque_act(action)
+
+    def _torque_act(self, action):
         if self.safety_box:
             self.get_latest_pose_jacobian_dict()
             truncated_dict = self.check_joints_in_box()
@@ -77,14 +93,14 @@ class SawyerEnv(Env, Serializable):
             np.clip(action, -4, 4, out=action)
         if not self.in_reset:
             action = self.amplify * action
-            action = np.clip(np.asarray(action),-MAX_TORQUES, MAX_TORQUES)
+            action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
 
         self.send_action(action)
         self.rate.sleep()
         return action
 
     def _reset_within_threshold(self):
-        desired_neutral = self.PDController._des_angles
+        desired_neutral = self.AnglePDController._des_angles
         # note PDController.des_angles is a map between joint name to angle while joint_angles is a list of angles
         desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
         actual_neutral = (self._joint_angles())
@@ -164,6 +180,7 @@ class SawyerEnv(Env, Serializable):
         return terminate_episode
 
     def jacobian_check(self):
+        #TODO: FIX THIS
         ee_jac = self.pose_jacobian_dict['right_hand'](1)
         if np.linalg.det(ee_jac) == 0:
             self._act(self._randomize_desired_angles())
@@ -245,8 +262,8 @@ class SawyerEnv(Env, Serializable):
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):
             cur_pos, cur_vel, _, _ = self.request_observation()
-            torques = self.PDController._compute_pd_forces(cur_pos, cur_vel)
-            actual_commanded_actions = self._act(torques)
+            torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
+            actual_commanded_actions = self._torque_act(torques)
             curr_time = time.time()
             self.init_delay = curr_time
             if self.previous_angles_reset_check():
@@ -439,3 +456,23 @@ class SawyerEnv(Env, Serializable):
 
     def _set_observation_space(self):
         raise NotImplementedError
+
+    def _set_action_space(self):
+        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
+        self.joint_torque_high = max_torques
+        self.joint_torque_low = -1 * max_torques
+
+        if self.action_mode == 'position':
+            delta_factor = 0.1
+            delta_high = delta_factor * np.ones(3)
+            delta_low = delta_factor * -1 * np.ones(3)
+
+            self._action_space = Box(
+                delta_low,
+                delta_high,
+            )
+        else:
+            self._action_space = Box(
+                self.joint_torque_low,
+                self.joint_torque_high
+            )

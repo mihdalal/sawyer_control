@@ -2,19 +2,15 @@
 from sawyer_control.srv import *
 import rospy
 import intera_interface as ii
-from inverse_kinematics import *
+from sawyer_control.inverse_kinematics import *
 from geometry_msgs.msg import (
-    PoseStamped,
-    PointStamped,
-    Pose,
-    Point,
     Quaternion,
 )
 joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
-    curr_joint_angles = req.joint_angles
+    curr_joint_angles = req.curr_joint_angles
 
     Q = Quaternion(
         x=ee_pos[3],
@@ -26,6 +22,8 @@ def compute_joint_angle(req):
     pose = get_pose_stamped(ee_pos[0], ee_pos[1], ee_pos[2], Q)
     curr_joint_angles = dict(zip(joint_names, curr_joint_angles))
     ik_angles = get_joint_angles(pose, curr_joint_angles)
+    ik_angles = [ik_angles[joint] for joint in joint_names]
+    print(ik_angles)
     return ikResponse(ik_angles)
 
 def inverse_kinematics_server():
@@ -35,7 +33,7 @@ def inverse_kinematics_server():
     global arm
     arm = ii.Limb('right')
 
-    s = rospy.Service('ik', observation, compute_joint_angle)
+    s = rospy.Service('ik', ik, compute_joint_angle)
     rospy.spin()
 
 if __name__ == "__main__":
