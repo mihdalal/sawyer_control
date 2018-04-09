@@ -3,4 +3,5 @@
     <node pkg="sawyer_control" type="actions_subscriber.py" name="actions"/>
     <node pkg="sawyer_control" type="observations_server.py" name="observation" />
     <node pkg="sawyer_control" type="jacobian_server.py" name="jacobians" />
+    <node pkg="sawyer_control" type="ik_server.py" name="inverse_kinematics" />
 </launch>

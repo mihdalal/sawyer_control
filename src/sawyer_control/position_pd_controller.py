@@ -15,8 +15,7 @@ class PositionPDController(object):
         # initialize parameters
         self._springs = dict()
         self._damping = dict()
-        self._des_angles = dict()
-
+        
         # create cuff disable publisher
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
@@ -65,11 +64,13 @@ class PositionPDController(object):
 
         # create our command dict
         cmd = dict()
-        self._des_angles = self.get_angles(desired_ee_pos, current_joint_angles)
+        des_angles = self.get_angles(desired_ee_pos, current_joint_angles)
         # calculate current forces
+
+        des_angles = dict(zip(self._limb_joint_names, des_angles))
         for idx, joint in enumerate(self._limb_joint_names):
             # spring portion
-            cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
+            cmd[joint] = self._springs[joint] * (des_angles[joint] -
                                                  current_joint_angles[idx])
             # damping portion
             cmd[joint] -= self._damping[joint] * current_joint_velocities[idx]
@@ -77,6 +78,7 @@ class PositionPDController(object):
         cmd = np.array([
             cmd[joint] for joint in self._limb_joint_names
         ])
+
         return cmd
 
     def request_ik_angles(self, ee_pos, joint_angles):
