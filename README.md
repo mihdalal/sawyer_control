@@ -1,5 +1,5 @@
-# sawyer_control
-Setup Instructions:
+# Sawyer Control
+## Setup Instructions:
 
 Make sure ros indigo is installed and make sure to add source /opt/ros/indigo/setup.bash to bashrc
 Install intera interface from the rethink website
@@ -46,7 +46,7 @@ alias status="rosrun intera_interface enable_robot.py -s"
 alias exp_nodes="roslaunch ~/catkin_ws/src/sawyer_control/exp_nodes.launch"
 ```
 
-Usage:
+## Usage:
 
 Basic workflow:
 
@@ -62,3 +62,9 @@ exp_nodes
 
 In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script
 the same you use any other gym environment: The sawyer env follows the same API. 
+
+## Features to come:
+End Effector reaching environment
+Lego Block stacking environment
+End Effector position control 
+Vision based environments
