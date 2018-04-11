@@ -264,8 +264,6 @@ class SawyerEnv(Env, Serializable):
             cur_pos, cur_vel, _, _ = self.request_observation()
             torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
             actual_commanded_actions = self._torque_act(torques)
-            curr_time = time.time()
-            self.init_delay = curr_time
             if self.previous_angles_reset_check():
                 break
             if self.use_safety_checks:
