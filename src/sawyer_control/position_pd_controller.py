@@ -21,7 +21,7 @@ class PositionPDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self.max_stiffness = 20
+        self.max_stiffness = 100
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
 
@@ -36,7 +36,7 @@ class PositionPDController(object):
 
         for joint in self._limb_joint_names:
             self._springs[joint] = 30
-            self._damping[joint] = 4
+            self._damping[joint] = 1
 
     def adjust_springs(self):
         for joint in list(self._des_angles.keys()):
@@ -91,5 +91,4 @@ class PositionPDController(object):
                 resp.joint_angles
             )
         except rospy.ServiceException as e:
-            import ipdb; ipdb.set_trace()
             print(e)

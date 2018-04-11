@@ -69,16 +69,30 @@ class SawyerEnv(Env, Serializable):
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
         self.amplify = np.ones(1) #by default, no amplifications
+        self.pd_time_steps = 50
 
     def _act(self, action):
         if self.action_mode == 'position':
-            cur_pos, cur_vel, _, ee_pos = self.request_observation()
+            ee_pos = self._end_effector_pose()
             target_ee_pos = ee_pos + action
-            action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
-            return self._torque_act(action)
+            for i in range(self.pd_time_steps):
+                cur_pos, cur_vel, _, ee_pos = self.request_observation()
+                torque_action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos) * 3
+                if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+                    break
+                self._torque_act(torque_action)
+
+            # cur_pos, cur_vel, _, ee_pos = self.request_observation()
+            # _, ik_angles = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
+            #
+            # self.AnglePDController._des_angles = ik_angles
+            # self._safe_move_to_neutral()
         else:
             return self._torque_act(action)
 
+    def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
+        return np.linalg.norm(ee_pos[:3]-target_ee_pos[:3]) < 0.02
+    
     def _torque_act(self, action):
         if self.safety_box:
             self.get_latest_pose_jacobian_dict()
