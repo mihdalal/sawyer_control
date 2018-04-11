@@ -64,7 +64,7 @@ In terms of running algorithms on the sawyer, you can simply plug in the sawyer 
 the same you use any other gym environment: The sawyer env follows the same API. 
 
 ## Features to come:
-End Effector reaching environment
-Lego Block stacking environment
-End Effector position control 
-Vision based environments
+* End Effector reaching environment
+* Lego Block stacking environment
+* End Effector position control 
+* Vision based environments
