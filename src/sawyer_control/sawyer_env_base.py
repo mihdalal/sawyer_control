@@ -70,7 +70,9 @@ class SawyerEnv(Env, Serializable):
         self.in_reset = True
         self.amplify = np.ones(1) #by default, no amplifications
         self.pd_time_steps = 50
-
+        self.jacobian_transpose_scale = .1
+        self._jacobian_pseudo_inverse_torques_scale = .1
+        
     def _act(self, action):
         if self.action_mode == 'position':
             self._pos_act(action)
@@ -86,6 +88,16 @@ class SawyerEnv(Env, Serializable):
             if self._endpoint_within_threshold(ee_pos, target_ee_pos):
                 break
             self._torque_act(torque_action)
+
+    def _jacobian_transpose_torques(self, difference_ee_pos):
+        self.get_latest_pose_jacobian_dict()
+        ee_jac = self.pose_jacobian_dict[-1][1]
+        return ee_jac.T @ difference_ee_pos * self.jacobian_transpose_scale
+
+    def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
+        self.get_latest_pose_jacobian_dict()
+        ee_jac = self.pose_jacobian_dict[-1][1]
+        return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         return np.linalg.norm(ee_pos[:3]-target_ee_pos[:3]) < 0.02
