@@ -1,5 +1,3 @@
-import math
-import time
 from collections import OrderedDict
 import numpy as np
 import rospy
@@ -12,14 +10,10 @@ from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from rllab.envs.base import Env
 
-from sawyer_control.position_pd_controller import PositionPDController
-
-
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
             update_hz=20,
-            action_mode='torque',
             safety_box=True,
             reward='huber',
             huber_delta=10,
@@ -27,17 +21,15 @@ class SawyerEnv(Env, Serializable):
             safety_force_temp=1.05,
             safe_reset_length=150,
             reward_magnitude=1,
-            use_safety_checks=False,
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.box_lows = np.array([-0.5888, -.6704, .04259])
-        self.box_highs = np.array([.7506, 0.87129, .9755])
+        self.safety_box_lows = np.array([-0.5888, -.6704, .04259])
+        self.safety_box_highs = np.array([.7506, 0.87129, .9755])
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
         self.arm_name = 'right'
-        self.use_safety_checks = use_safety_checks
         self.reward_magnitude = reward_magnitude
         self.safety_box = safety_box
         self.safe_reset_length = safe_reset_length
@@ -45,8 +37,6 @@ class SawyerEnv(Env, Serializable):
         self.safety_force_magnitude = safety_force_magnitude
         self.safety_force_temp = safety_force_temp
         self.AnglePDController = AnglePDController()
-        self.PositionPDController = PositionPDController()
-        self.action_mode = action_mode
 
         max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
         self.joint_torque_high = max_torques
@@ -68,16 +58,10 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(1) #by default, no amplifications
+        self.amplify = np.ones(1)
 
     def _act(self, action):
-        if self.action_mode == 'position':
-            cur_pos, cur_vel, _, ee_pos = self.request_observation()
-            target_ee_pos = ee_pos + action
-            action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
-            return self._torque_act(action)
-        else:
-            return self._torque_act(action)
+        return self._torque_act(action)
 
     def _torque_act(self, action):
         if self.safety_box:
@@ -101,7 +85,6 @@ class SawyerEnv(Env, Serializable):
 
     def _reset_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
-        # note PDController.des_angles is a map between joint name to angle while joint_angles is a list of angles
         desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
@@ -145,103 +128,15 @@ class SawyerEnv(Env, Serializable):
 
     def step(self, action):
         self.nan_check(action)
-        actual_commanded_action = self._act(action)
+        self._act(action)
         observation = self._get_observation()
         reward = self.reward(action)
-
-        if self.use_safety_checks:
-            out_of_box = self.safety_box_check()
-            high_torque = self.high_torque_check(actual_commanded_action)
-            unexpected_velocity = self.unexpected_velocity_check()
-            unexpected_torque = self.unexpected_torque_check()
-            done = out_of_box or high_torque or unexpected_velocity or unexpected_torque
-        else:
-            done = False
+        done = False
         info = {}
         return observation, reward, done, info
 
     def reward(self, action):
         raise NotImplementedError
-
-    def safety_box_check(self):
-        # TODO: tune this check
-        self.get_latest_pose_jacobian_dict()
-        truncated_dict = self.check_joints_in_box()
-        terminate_episode = False
-        if len(truncated_dict) > 0:
-            for joint in truncated_dict.keys():
-                dist = self._compute_joint_distance_outside_box(truncated_dict[joint][0])
-                if dist > .19:
-                    if not self.in_reset:
-                        print('safety box failure during train/eval: ', joint, dist)
-                        terminate_episode = True
-                    else:
-                        raise EnvironmentError('safety box failure during reset: ', joint, dist)
-        return terminate_episode
-
-    def jacobian_check(self):
-        #TODO: FIX THIS
-        ee_jac = self.pose_jacobian_dict['right_hand'](1)
-        if np.linalg.det(ee_jac) == 0:
-            self._act(self._randomize_desired_angles())
-
-    def unexpected_torque_check(self):
-        #TODO: redesign this check
-        #we care about the torque that was observed to make sure it hasn't gone too high
-        new_torques = self.get_observed_torques_minus_gravity()
-        if not self.in_reset:
-            ERROR_THRESHOLD = np.array([25, 25, 25, 25, 666, 666, 10])
-            is_peaks = (np.abs(new_torques) > ERROR_THRESHOLD).any()
-            if is_peaks:
-                print('unexpected_torque during train/eval: ', new_torques)
-                return True
-        else:
-            ERROR_THRESHOLD = np.array([25, 25, 25, 30, 666, 666, 10])
-            is_peaks = (np.abs(new_torques) > ERROR_THRESHOLD).any()
-            if is_peaks:
-                raise EnvironmentError('unexpected torques during reset: ', new_torques)
-        return False
-
-    def unexpected_velocity_check(self):
-        #TODO: tune this check
-        _, velocities, _, _ = self.request_observation()
-        velocities = np.array(velocities)
-        ERROR_THRESHOLD = 5 * np.ones(7)
-        is_peaks = (np.abs(velocities) > ERROR_THRESHOLD).any()
-        if is_peaks:
-            print('unexpected_velocities during train/eval: ', velocities)
-            if not self.in_reset:
-                return True
-            else:
-                raise EnvironmentError('unexpected velocities during reset: ', velocities)
-        return False
-
-    def high_torque_check(self, commanded_torques):
-        # TODO: tune this check
-        new_torques = np.abs(commanded_torques)
-        current_angles = self._joint_angles()
-        position_deltas = np.abs(current_angles - self.previous_angles)
-        DELTA_THRESHOLD = .05 * np.ones(7)
-        ERROR_THRESHOLD = [11, 15, 15, 15, 666, 666, 10]
-        violation = False
-        for i in range(len(new_torques)):
-            if new_torques[i] > ERROR_THRESHOLD[i] and position_deltas[i] < DELTA_THRESHOLD[i]:
-                violation=True
-                print("violating joint:", i)
-        if violation:
-            print('high_torque:', new_torques)
-            print('positions', position_deltas)
-            if not self.in_reset:
-                return True
-            else:
-                raise EnvironmentError('ERROR: Applying large torques and not moving')
-        self.previous_angles = current_angles
-        return False
-
-    def nan_check(self, action):
-        for val in action:
-            if math.isnan(val):
-                raise EnvironmentError('ERROR: NaN action attempted')
 
     def _get_observation(self):
         angles = self._joint_angles()
@@ -263,14 +158,9 @@ class SawyerEnv(Env, Serializable):
         for i in range(self.safe_reset_length):
             cur_pos, cur_vel, _, _ = self.request_observation()
             torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
-            actual_commanded_actions = self._torque_act(torques)
+            self._torque_act(torques)
             if self.previous_angles_reset_check():
                 break
-            if self.use_safety_checks:
-                self.safety_box_check()
-                self.unexpected_torque_check()
-                self.high_torque_check(actual_commanded_actions)
-                self.unexpected_velocity_check()
 
     def previous_angles_reset_check(self):
         close_to_desired_reset_pos = self._reset_within_threshold()
@@ -281,12 +171,6 @@ class SawyerEnv(Env, Serializable):
         return close_to_desired_reset_pos and no_velocity
 
     def reset(self):
-        """
-        Resets the state of the environment, returning an initial observation.
-        Outputs
-        -------
-        observation : the initial observation of the space. (Initial reward is assumed to be 0.)
-        """
         self.in_reset = True
         self.previous_angles = self._joint_angles()
         self._safe_move_to_neutral()
@@ -345,7 +229,7 @@ class SawyerEnv(Env, Serializable):
     def _pose_in_box(self, pose):
         within_box = [curr_pose > lower_pose and curr_pose < higher_pose
                       for curr_pose, lower_pose, higher_pose
-                      in zip(pose, self.box_lows, self.box_highs)]
+                      in zip(pose, self.safety_box_lows, self.safety_box_highs)]
         return all(within_box)
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):
@@ -361,20 +245,20 @@ class SawyerEnv(Env, Serializable):
         curr_x = pose[0]
         curr_y = pose[1]
         curr_z = pose[2]
-        if curr_x > self.box_highs[0]:
-            x = -1 * np.exp(np.abs(curr_x - self.box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_x < self.box_lows[0]:
-            x = np.exp(np.abs(curr_x - self.box_lows[0]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_x > self.safety_box_highs[0]:
+            x = -1 * np.exp(np.abs(curr_x - self.safety_box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_x < self.safety_box_lows[0]:
+            x = np.exp(np.abs(curr_x - self.safety_box_lows[0]) * self.safety_force_temp) * self.safety_force_magnitude
 
-        if curr_y > self.box_highs[1]:
-            y = -1 * np.exp(np.abs(curr_y - self.box_highs[1]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_y < self.box_lows[1]:
-            y = np.exp(np.abs(curr_y - self.box_lows[1]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_y > self.safety_box_highs[1]:
+            y = -1 * np.exp(np.abs(curr_y - self.safety_box_highs[1]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_y < self.safety_box_lows[1]:
+            y = np.exp(np.abs(curr_y - self.safety_box_lows[1]) * self.safety_force_temp) * self.safety_force_magnitude
 
-        if curr_z > self.box_highs[2]:
-            z = -1 * np.exp(np.abs(curr_z - self.box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_z < self.box_lows[2]:
-            z = np.exp(np.abs(curr_z - self.box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_z > self.safety_box_highs[2]:
+            z = -1 * np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_z < self.safety_box_lows[2]:
+            z = np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
         return np.array([x, y, z])
 
     def _compute_joint_distance_outside_box(self, pose):
@@ -385,18 +269,18 @@ class SawyerEnv(Env, Serializable):
             x, y, z = 0, 0, 0
         else:
             x, y, z = 0, 0, 0
-            if curr_x > self.box_highs[0]:
-                x = np.abs(curr_x - self.box_highs[0])
-            elif curr_x < self.box_lows[0]:
-                x = np.abs(curr_x - self.box_lows[0])
-            if curr_y > self.box_highs[1]:
-                y = np.abs(curr_y - self.box_highs[1])
-            elif curr_y < self.box_lows[1]:
-                y = np.abs(curr_y - self.box_lows[1])
-            if curr_z > self.box_highs[2]:
-                z = np.abs(curr_z - self.box_highs[2])
-            elif curr_z < self.box_lows[2]:
-                z = np.abs(curr_z - self.box_lows[2])
+            if curr_x > self.safety_box_highs[0]:
+                x = np.abs(curr_x - self.safety_box_highs[0])
+            elif curr_x < self.safety_box_lows[0]:
+                x = np.abs(curr_x - self.safety_box_lows[0])
+            if curr_y > self.safety_box_highs[1]:
+                y = np.abs(curr_y - self.safety_box_highs[1])
+            elif curr_y < self.safety_box_lows[1]:
+                y = np.abs(curr_y - self.safety_box_lows[1])
+            if curr_z > self.safety_box_highs[2]:
+                z = np.abs(curr_z - self.safety_box_highs[2])
+            elif curr_z < self.safety_box_lows[2]:
+                z = np.abs(curr_z - self.safety_box_lows[2])
         return np.linalg.norm([x, y, z])
 
     def log_diagnostics(self, paths, logger=None):
@@ -459,18 +343,7 @@ class SawyerEnv(Env, Serializable):
         max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
         self.joint_torque_high = max_torques
         self.joint_torque_low = -1 * max_torques
-
-        if self.action_mode == 'position':
-            delta_factor = 0.1
-            delta_high = delta_factor * np.ones(3)
-            delta_low = delta_factor * -1 * np.ones(3)
-
-            self._action_space = Box(
-                delta_low,
-                delta_high,
-            )
-        else:
-            self._action_space = Box(
-                self.joint_torque_low,
-                self.joint_torque_high
-            )
+        self._action_space = Box(
+            self.joint_torque_low,
+            self.joint_torque_high
+        )

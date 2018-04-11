@@ -155,12 +155,6 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         self.desired = np.random.rand(1, 7)[0] * 2 - 1
 
     def reset(self):
-        """
-        Resets the state of the environment, returning an initial observation.
-        Outputs
-        -------
-        observation : the initial observation of the space. (Initial reward is assumed to be 0.)
-        """
         self.in_reset = True
         self.previous_angles = self._joint_angles()
         self._safe_move_to_neutral()
@@ -169,74 +163,6 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         if self._randomize_goal_on_reset:
             self._randomize_desired_angles()
         return self._get_observation()
-
-class SawyerXYZReachingEnv(SawyerEnv):
-    def __init__(self,
-                 randomize_goal_on_reset=False,
-                 **kwargs
-                 ):
-        Serializable.quick_init(self, locals())
-        self.randomize_goal_on_reset = randomize_goal_on_reset
-        super().__init__(self, **kwargs)
-
-    def reward(self, action):
-        #TODO: IMPLEMENT
-        pass
-
-    def log_diagnostics(self, paths, logger=None):
-        if logger==None:
-            super().log_diagnostics(paths, logger=logger)
-        else:
-            #TODO: IMPLEMENT
-            pass
-
-    def _extract_experiment_info(self, paths):
-        #TODO: IMPLEMENT
-        pass
-
-    def _set_observation_space(self):
-        lows = np.hstack((
-            JOINT_VALUE_LOW['position'],
-            JOINT_VALUE_LOW['velocity'],
-            JOINT_VALUE_LOW['torque'],
-            END_EFFECTOR_VALUE_LOW['position'],
-            JOINT_VALUE_LOW['position'],
-        ))
-
-        highs = np.hstack((
-            JOINT_VALUE_HIGH['position'],
-            JOINT_VALUE_HIGH['velocity'],
-            JOINT_VALUE_HIGH['torque'],
-            END_EFFECTOR_VALUE_HIGH['position'],
-            JOINT_VALUE_HIGH['position'],
-        ))
-
-        if self.randomize_goal_on_reset:
-            self._randomize_desired_end_effector_pose()
-        else:
-            self.desired = np.ones(3)
-        self._observation_space = Box(lows, highs)
-
-    def _randomize_desired_end_effector_pose(self):
-        #TODO: IMPLEMENT
-        raise NotImplementedError
-
-    def reset(self):
-        """
-        Resets the state of the environment, returning an initial observation.
-        Outputs
-        -------
-        observation : the initial observation of the space. (Initial reward is assumed to be 0.)
-        """
-        self.in_reset = True
-        self.previous_angles = self._joint_angles()
-        self._safe_move_to_neutral()
-        self.previous_angles = self._joint_angles()
-        self.in_reset = False
-        if self.randomize_goal_on_reset:
-            self._randomize_desired_end_effector_pose()
-        return self._get_observation()
-
 
 
 
