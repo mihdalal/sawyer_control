@@ -47,7 +47,7 @@ exp_nodes
 3. Now open another terminal and run your algorithm on the sawyer
 
 In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script
-the same you use any other gym environment: The sawyer env follows the same API. 
+the same you use any other gym environment: The sawyer env follows the OpenAI Gym API. 
 
 ## Features to come:
 * End Effector reaching environment
