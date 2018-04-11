@@ -73,22 +73,19 @@ class SawyerEnv(Env, Serializable):
 
     def _act(self, action):
         if self.action_mode == 'position':
-            ee_pos = self._end_effector_pose()
-            target_ee_pos = ee_pos + action
-            for i in range(self.pd_time_steps):
-                cur_pos, cur_vel, _, ee_pos = self.request_observation()
-                torque_action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos) * 3
-                if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-                    break
-                self._torque_act(torque_action)
-
-            # cur_pos, cur_vel, _, ee_pos = self.request_observation()
-            # _, ik_angles = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos)
-            #
-            # self.AnglePDController._des_angles = ik_angles
-            # self._safe_move_to_neutral()
+            self._pos_act(action)
         else:
             return self._torque_act(action)
+
+    def _pos_act(self, action):
+        ee_pos = self._end_effector_pose()
+        target_ee_pos = ee_pos + action
+        for i in range(self.pd_time_steps):
+            cur_pos, cur_vel, _, ee_pos = self.request_observation()
+            torque_action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos) * 3
+            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+                break
+            self._torque_act(torque_action)
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         return np.linalg.norm(ee_pos[:3]-target_ee_pos[:3]) < 0.02
@@ -115,7 +112,6 @@ class SawyerEnv(Env, Serializable):
 
     def _reset_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
-        # note PDController.des_angles is a map between joint name to angle while joint_angles is a list of angles
         desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
@@ -165,7 +161,8 @@ class SawyerEnv(Env, Serializable):
 
         if self.use_safety_checks:
             out_of_box = self.safety_box_check()
-            high_torque = self.high_torque_check(actual_commanded_action)
+            if actual_commanded_action is not None:
+                high_torque = self.high_torque_check(actual_commanded_action)
             unexpected_velocity = self.unexpected_velocity_check()
             unexpected_torque = self.unexpected_torque_check()
             done = out_of_box or high_torque or unexpected_velocity or unexpected_torque
