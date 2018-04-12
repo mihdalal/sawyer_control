@@ -177,7 +177,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         self._randomize_goal_on_reset = randomize_goal_on_reset
 
     def reward(self):
-        current = self._end_effector_pose()
+        current = self._end_effector_pose()[:3]
         differences = self.desired - current
         reward = self.reward_function(differences)
         return reward
@@ -252,7 +252,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         for obsSet in obsSets:
             for observation in obsSet:
                 pos = np.array(observation[21:24])
-                des = np.array(observation[24:27])
+                des = np.array(observation[28:31])
                 distances.append(np.linalg.norm(pos - des))
                 positions.append(pos)
                 desired_positions.append(des)

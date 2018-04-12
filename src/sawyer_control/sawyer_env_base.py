@@ -71,11 +71,12 @@ class SawyerEnv(Env, Serializable):
         self.amplify = np.ones(1)*5 #by default, no amplifications
         self.pd_time_steps = 50
         self.jacobian_transpose_scale = 30
-        self.jacobian_pseudo_inverse_torques_scale = 5
+        self.jacobian_pseudo_inverse_torques_scale = 10
+        self.damping_scale = 5
 
     def _act(self, action):
         if self.action_mode == 'position':
-            self._jac_act(action)
+            self._jac_act_damp(action)
         else:
             return self._torque_act(action)
 
@@ -100,6 +101,20 @@ class SawyerEnv(Env, Serializable):
             if self._endpoint_within_threshold(ee_pos, target_ee_pos):
                 break
 
+    def _jac_act_damp(self, action):
+        ee_pos = self._end_effector_pose()
+        target_ee_pos = (ee_pos + action)[:3]
+        prev_jacobian_pseudo_inverse = 0
+        for i in range(self.pd_time_steps):
+            ee_pos = self._end_effector_pose()[:3]
+            difference = (ee_pos - target_ee_pos)
+            jacobian_pseudo_inverse = self._jacobian_pseudo_inverse_torques(difference)
+            torque_action = -1*(jacobian_pseudo_inverse + self.damping_scale*(jacobian_pseudo_inverse  - prev_jacobian_pseudo_inverse)/self.jacobian_pseudo_inverse_torques_scale)
+            prev_jacobian_pseudo_inverse = jacobian_pseudo_inverse
+            self._torque_act(torque_action)
+            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+                break
+
     def _jacobian_transpose_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
         ee_jac = self.pose_jacobian_dict['right_j6'][1]
@@ -114,10 +129,8 @@ class SawyerEnv(Env, Serializable):
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         inf = np.max(np.abs(ee_pos-target_ee_pos))
         cond = inf < .01
-        # dist =  np.linalg.norm(ee_pos[:3]-target_ee_pos[:3])
-        # print(dist)
-        # return dist < 0.06
         return cond
+
     def _torque_act(self, action):
         if self.safety_box:
             self.get_latest_pose_jacobian_dict()
