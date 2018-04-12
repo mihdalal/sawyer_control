@@ -71,17 +71,18 @@ class SawyerEnv(Env, Serializable):
         self.amplify = np.ones(1) #by default, no amplifications
         self.pd_time_steps = 50
         self.jacobian_transpose_scale = .1
-        self._jacobian_pseudo_inverse_torques_scale = .1
-        
+        self.jacobian_pseudo_inverse_torques_scale = .1
+
     def _act(self, action):
         if self.action_mode == 'position':
-            self._pos_act(action)
+            # self._pos_act(action)
+            self._jac_act(action)
         else:
             return self._torque_act(action)
 
     def _pos_act(self, action):
         ee_pos = self._end_effector_pose()
-        target_ee_pos = ee_pos + action
+        target_ee_pos = (ee_pos + action)
         for i in range(self.pd_time_steps):
             cur_pos, cur_vel, _, ee_pos = self.request_observation()
             torque_action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos) * 3
@@ -89,14 +90,23 @@ class SawyerEnv(Env, Serializable):
                 break
             self._torque_act(torque_action)
 
+    def _jac_act(self, action):
+        ee_pos = self._end_effector_pose()
+        target_ee_pos = (ee_pos + action)[:3]
+        for i in range(self.pd_time_steps):
+            ee_pos = self._end_effector_pose()[:3]
+            difference = ee_pos - target_ee_pos
+            torque_action = self._jacobian_transpose_torques(difference)
+            self._torque_act(torque_action)
+
     def _jacobian_transpose_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict[-1][1]
+        ee_jac = self.pose_jacobian_dict['right_j6'][1]
         return ee_jac.T @ difference_ee_pos * self.jacobian_transpose_scale
 
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict[-1][1]
+        ee_jac = self.pose_jacobian_dict['right_j6'][1]
         return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
