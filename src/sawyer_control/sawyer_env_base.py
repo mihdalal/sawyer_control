@@ -2,7 +2,7 @@ from collections import OrderedDict
 import numpy as np
 import rospy
 from joint_angle_pd_controller import AnglePDController
-from railrl.misc.eval_util import create_stats_ordered_dict
+from eval_util import create_stats_ordered_dict
 from serializable import Serializable
 from rllab.spaces.box import Box
 from sawyer_control.srv import observation
