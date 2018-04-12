@@ -62,7 +62,7 @@ class SawyerEnv(Env, Serializable):
         self.amplify = np.ones(1)
 
     def _act(self, action):
-        return self._torque_act(action)
+        self._torque_act(action)
 
     def _torque_act(self, action):
         if self.safety_box:
@@ -76,17 +76,17 @@ class SawyerEnv(Env, Serializable):
                     force = forces_dict[joint]
                     torques = torques + np.dot(jacobian.T, force).T
                 action = action + torques
+
         if self.in_reset:
             np.clip(action, -4, 4, out=action)
-        if not self.in_reset:
+        else:
             action = self.amplify * action
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
 
         self.send_action(action)
         self.rate.sleep()
-        return action
 
-    def _reset_within_threshold(self):
+    def _reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
         desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
         actual_neutral = (self._joint_angles())
@@ -130,15 +130,14 @@ class SawyerEnv(Env, Serializable):
         return differences
 
     def step(self, action):
-        self.nan_check(action)
         self._act(action)
         observation = self._get_observation()
-        reward = self.reward(action)
+        reward = self.reward()
         done = False
         info = {}
         return observation, reward, done, info
 
-    def reward(self, action):
+    def reward(self):
         raise NotImplementedError
 
     def _get_observation(self):
@@ -162,11 +161,11 @@ class SawyerEnv(Env, Serializable):
             cur_pos, cur_vel, _, _ = self.request_observation()
             torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
             self._torque_act(torques)
-            if self.previous_angles_reset_check():
+            if self._reset_complete():
                 break
 
-    def previous_angles_reset_check(self):
-        close_to_desired_reset_pos = self._reset_within_threshold()
+    def _reset_complete(self):
+        close_to_desired_reset_pos = self._reset_angles_within_threshold()
         _, velocities, _, _ = self.request_observation()
         velocities = np.abs(np.array(velocities))
         VELOCITY_THRESHOLD = .002 * np.ones(7)
@@ -175,9 +174,7 @@ class SawyerEnv(Env, Serializable):
 
     def reset(self):
         self.in_reset = True
-        self.previous_angles = self._joint_angles()
         self._safe_move_to_neutral()
-        self.previous_angles = self._joint_angles()
         self.in_reset = False
         return self._get_observation()
 

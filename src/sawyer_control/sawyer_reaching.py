@@ -82,7 +82,7 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         self._randomize_goal_on_reset = randomize_goal_on_reset
         super().__init__(**kwargs)
 
-    def reward(self, action):
+    def reward(self):
         current = self._joint_angles()
         differences = self.compute_angle_difference(current, self.desired)
         reward = self.reward_function(differences)
