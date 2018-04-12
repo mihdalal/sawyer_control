@@ -68,10 +68,10 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(1) #by default, no amplifications
+        self.amplify = np.ones(1)*5 #by default, no amplifications
         self.pd_time_steps = 50
-        self.jacobian_transpose_scale = .1
-        self.jacobian_pseudo_inverse_torques_scale = .1
+        self.jacobian_transpose_scale = 30
+        self.jacobian_pseudo_inverse_torques_scale = 10
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -95,14 +95,17 @@ class SawyerEnv(Env, Serializable):
         target_ee_pos = (ee_pos + action)[:3]
         for i in range(self.pd_time_steps):
             ee_pos = self._end_effector_pose()[:3]
-            difference = ee_pos - target_ee_pos
-            torque_action = self._jacobian_transpose_torques(difference)
+            difference = (ee_pos - target_ee_pos)
+            torque_action = -1*self._jacobian_pseudo_inverse_torques(difference)
             self._torque_act(torque_action)
+            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+                break
 
     def _jacobian_transpose_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
         ee_jac = self.pose_jacobian_dict['right_j6'][1]
-        return ee_jac.T @ difference_ee_pos * self.jacobian_transpose_scale
+        prescaling_torques = ee_jac.T @ difference_ee_pos
+        return prescaling_torques * self.jacobian_transpose_scale
 
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
@@ -110,8 +113,12 @@ class SawyerEnv(Env, Serializable):
         return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
-        return np.linalg.norm(ee_pos[:3]-target_ee_pos[:3]) < 0.02
-    
+        inf = np.max(np.abs(ee_pos-target_ee_pos))
+        cond = inf < .01
+        # dist =  np.linalg.norm(ee_pos[:3]-target_ee_pos[:3])
+        # print(dist)
+        # return dist < 0.06
+        return cond
     def _torque_act(self, action):
         if self.safety_box:
             self.get_latest_pose_jacobian_dict()
@@ -127,7 +134,6 @@ class SawyerEnv(Env, Serializable):
         if not self.in_reset:
             action = self.amplify * action
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
-
         self.send_action(action)
         self.rate.sleep()
         return action

@@ -1,10 +1,10 @@
 from sawyer_reaching import SawyerJointSpaceReachingEnv
 import numpy as np
 
-env = SawyerJointSpaceReachingEnv(desired=np.ones(7), action_mode='position')
+env = SawyerJointSpaceReachingEnv(desired=np.ones(7), safety_box=False, action_mode='position')
 env.reset()
-# print(env._end_effector_pose())
-deltas = np.array([1, 0, 0, 0, 0, 0, 0])
+original = env._end_effector_pose()
+deltas = np.array([.2, -.3, -.5, 0, 0, 0, 0])
 env._jac_act(deltas)
-# print(env._end_effector_pose())
-
+final = env._end_effector_pose()
+print(final-original)
