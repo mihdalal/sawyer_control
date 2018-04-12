@@ -3,9 +3,9 @@ import time
 from collections import OrderedDict
 import numpy as np
 import rospy
-from joint_angle_pd_controller import AnglePDController
+from sawyer_control.joint_angle_pd_controller import AnglePDController
 from railrl.misc.eval_util import create_stats_ordered_dict
-from serializable import Serializable
+from sawyer_control.serializable import Serializable
 from rllab.spaces.box import Box
 from sawyer_control.srv import observation
 from sawyer_control.msg import actions
@@ -32,8 +32,8 @@ class SawyerEnv(Env, Serializable):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.box_lows = np.array([-0.5888, -.6704, .04259])
-        self.box_highs = np.array([.7506, 0.87129, .9755])
+        self.safety_box_lows = np.array([-0.5888, -.6704, .04259])
+        self.safety_box_highs = np.array([.7506, 0.87129, .9755])
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
         self.arm_name = 'right'
@@ -71,11 +71,10 @@ class SawyerEnv(Env, Serializable):
         self.amplify = np.ones(1)*5 #by default, no amplifications
         self.pd_time_steps = 50
         self.jacobian_transpose_scale = 30
-        self.jacobian_pseudo_inverse_torques_scale = 10
+        self.jacobian_pseudo_inverse_torques_scale = 5
 
     def _act(self, action):
         if self.action_mode == 'position':
-            # self._pos_act(action)
             self._jac_act(action)
         else:
             return self._torque_act(action)
@@ -166,9 +165,9 @@ class SawyerEnv(Env, Serializable):
     def _Huber_reward(self, differences):
         a = np.abs(np.mean(differences))
         if a <= self.huber_delta:
-            reward = -1 / 2 * a ** 2 * self.reward_magnitude
+            reward = -1 / 2 * a ** 2
         else:
-            reward = -1 * self.huber_delta * (a - 1 / 2 * self.huber_delta) * self.reward_magnitude
+            reward = -1 * self.huber_delta * (a - 1 / 2 * self.huber_delta)
         return reward
 
     def _Norm_reward(self, differences):
@@ -185,7 +184,7 @@ class SawyerEnv(Env, Serializable):
         self.nan_check(action)
         actual_commanded_action = self._act(action)
         observation = self._get_observation()
-        reward = self.reward(action)
+        reward = self.reward()*self.reward_magnitude
 
         if self.use_safety_checks:
             out_of_box = self.safety_box_check()
@@ -199,7 +198,7 @@ class SawyerEnv(Env, Serializable):
         info = {}
         return observation, reward, done, info
 
-    def reward(self, action):
+    def reward(self):
         raise NotImplementedError
 
     def safety_box_check(self):
@@ -384,7 +383,7 @@ class SawyerEnv(Env, Serializable):
     def _pose_in_box(self, pose):
         within_box = [curr_pose > lower_pose and curr_pose < higher_pose
                       for curr_pose, lower_pose, higher_pose
-                      in zip(pose, self.box_lows, self.box_highs)]
+                      in zip(pose, self.safety_box_lows, self.safety_box_highs)]
         return all(within_box)
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):
@@ -400,20 +399,20 @@ class SawyerEnv(Env, Serializable):
         curr_x = pose[0]
         curr_y = pose[1]
         curr_z = pose[2]
-        if curr_x > self.box_highs[0]:
-            x = -1 * np.exp(np.abs(curr_x - self.box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_x < self.box_lows[0]:
-            x = np.exp(np.abs(curr_x - self.box_lows[0]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_x > self.safety_box_highs[0]:
+            x = -1 * np.exp(np.abs(curr_x - self.safety_box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_x < self.safety_box_lows[0]:
+            x = np.exp(np.abs(curr_x - self.safety_box_lows[0]) * self.safety_force_temp) * self.safety_force_magnitude
 
-        if curr_y > self.box_highs[1]:
-            y = -1 * np.exp(np.abs(curr_y - self.box_highs[1]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_y < self.box_lows[1]:
-            y = np.exp(np.abs(curr_y - self.box_lows[1]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_y > self.safety_box_highs[1]:
+            y = -1 * np.exp(np.abs(curr_y - self.safety_box_highs[1]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_y < self.safety_box_lows[1]:
+            y = np.exp(np.abs(curr_y - self.safety_box_lows[1]) * self.safety_force_temp) * self.safety_force_magnitude
 
-        if curr_z > self.box_highs[2]:
-            z = -1 * np.exp(np.abs(curr_z - self.box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
-        elif curr_z < self.box_lows[2]:
-            z = np.exp(np.abs(curr_z - self.box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+        if curr_z > self.safety_box_highs[2]:
+            z = -1 * np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+        elif curr_z < self.safety_box_lows[2]:
+            z = np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
         return np.array([x, y, z])
 
     def _compute_joint_distance_outside_box(self, pose):
@@ -424,18 +423,18 @@ class SawyerEnv(Env, Serializable):
             x, y, z = 0, 0, 0
         else:
             x, y, z = 0, 0, 0
-            if curr_x > self.box_highs[0]:
-                x = np.abs(curr_x - self.box_highs[0])
-            elif curr_x < self.box_lows[0]:
-                x = np.abs(curr_x - self.box_lows[0])
-            if curr_y > self.box_highs[1]:
-                y = np.abs(curr_y - self.box_highs[1])
-            elif curr_y < self.box_lows[1]:
-                y = np.abs(curr_y - self.box_lows[1])
-            if curr_z > self.box_highs[2]:
-                z = np.abs(curr_z - self.box_highs[2])
-            elif curr_z < self.box_lows[2]:
-                z = np.abs(curr_z - self.box_lows[2])
+            if curr_x > self.safety_box_highs[0]:
+                x = np.abs(curr_x - self.safety_box_highs[0])
+            elif curr_x < self.safety_box_lows[0]:
+                x = np.abs(curr_x - self.safety_box_lows[0])
+            if curr_y > self.safety_box_highs[1]:
+                y = np.abs(curr_y - self.safety_box_highs[1])
+            elif curr_y < self.safety_box_lows[1]:
+                y = np.abs(curr_y - self.safety_box_lows[1])
+            if curr_z > self.safety_box_highs[2]:
+                z = np.abs(curr_z - self.safety_box_highs[2])
+            elif curr_z < self.safety_box_lows[2]:
+                z = np.abs(curr_z - self.safety_box_lows[2])
         return np.linalg.norm([x, y, z])
 
     def log_diagnostics(self, paths, logger=None):
