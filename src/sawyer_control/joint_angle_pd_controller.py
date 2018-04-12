@@ -29,7 +29,6 @@ class AnglePDController(object):
                             'right_j6': 3.2978828125,
                             'right_j5': 1.3938330078125}
 
-
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()

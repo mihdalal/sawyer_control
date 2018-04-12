@@ -23,8 +23,8 @@ class SawyerEnv(Env, Serializable):
             safety_box=True,
             reward='huber',
             huber_delta=10,
-            safety_force_magnitude=2,
-            safety_force_temp=1.05,
+            safety_force_magnitude=8,
+            safety_force_temp=15,
             safe_reset_length=150,
             reward_magnitude=1,
             use_safety_checks=False,
@@ -32,8 +32,8 @@ class SawyerEnv(Env, Serializable):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.safety_box_lows = np.array([-0.5888, -.6704, .04259])
-        self.safety_box_highs = np.array([.7506, 0.87129, .9755])
+        self.safety_box_lows = np.array([0.1768254, -0.30626088, -1])
+        self.safety_box_highs = np.array([0.93623984, 0.51990008, 1])
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
         self.arm_name = 'right'
@@ -68,7 +68,7 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(1)*5 #by default, no amplifications
+        self.amplify = np.ones(1) #by default, no amplifications
         self.pd_time_steps = 50
         self.jacobian_transpose_scale = 30
         self.jacobian_pseudo_inverse_torques_scale = 10
