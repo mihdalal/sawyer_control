@@ -28,6 +28,7 @@ class SawyerEnv(Env, Serializable):
         self.safety_box_lows = np.array([-0.5888, -.6704, .04259])
         self.safety_box_highs = np.array([.7506, 0.87129, .9755])
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
+        self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6']
 
         self.arm_name = 'right'
         self.reward_magnitude = reward_magnitude
@@ -71,7 +72,9 @@ class SawyerEnv(Env, Serializable):
                 forces_dict = self._get_adjustment_forces_per_joint_dict(truncated_dict)
                 torques = np.zeros(7)
                 for joint in forces_dict:
-                    torques = torques + np.dot(truncated_dict[joint][1].T, forces_dict[joint]).T
+                    jacobian = truncated_dict[joint][1]
+                    force = forces_dict[joint]
+                    torques = torques + np.dot(jacobian.T, force).T
                 action = action + torques
         if self.in_reset:
             np.clip(action, -4, 4, out=action)
@@ -198,16 +201,15 @@ class SawyerEnv(Env, Serializable):
         jac_counter = 0
         poses = np.array(poses)
         jacobians = np.array(jacobians)
-        for joint in self.joint_names[2:]:
+        for link in self.link_names[2:]:
             pose = poses[pose_counter:pose_counter + 3]
-            jacobian = np.array([
-                jacobians[jac_counter:jac_counter + 7],
-                jacobians[jac_counter + 7:jac_counter + 14],
-                jacobians[jac_counter + 14:jac_counter + 21],
-            ])
+            jacobian = []
+            for i in range(jac_counter, jac_counter+21, 7):
+                jacobian.append(jacobians[i:i+7])
+            jacobian = np.array(jacobian)
             pose_counter += 3
             jac_counter += 21
-            pose_jacobian_dict[joint] = [pose, jacobian]
+            pose_jacobian_dict[link] = [pose, jacobian]
         return pose_jacobian_dict
 
     def _get_positions_from_pose_jacobian_dict(self):
