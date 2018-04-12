@@ -32,11 +32,10 @@ def get_pose_jacobian(poses, jacobians):
 def get_robot_pose_jacobian_client(name):
     rospy.wait_for_service('get_robot_pose_jacobian')
     try:
-        # ipdb.set_trace()
         get_robot_pose_jacobian = rospy.ServiceProxy('get_robot_pose_jacobian', getRobotPoseAndJacobian, persistent=True)
         resp = get_robot_pose_jacobian(name)
         d = get_pose_jacobian(resp.poses, resp.jacobians)
-        ipdb.set_trace()
+        return d
     except rospy.ServiceException as e:
         print(e)
 
