@@ -61,7 +61,7 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(1)*2.5
+        self.amplify = np.ones(7)*2.5
         self.pd_time_steps = 50
         self.jacobian_pseudo_inverse_torques_scale = 10
         self.damping_scale = 5
@@ -88,7 +88,7 @@ class SawyerEnv(Env, Serializable):
 
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict['right_j6'][1]
+        ee_jac = self.pose_jacobian_dict['right_l6'][1]
         return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
