@@ -1,5 +1,3 @@
-import math
-from collections import OrderedDict
 import numpy as np
 import rospy
 from sawyer_control.joint_angle_pd_controller import AnglePDController
