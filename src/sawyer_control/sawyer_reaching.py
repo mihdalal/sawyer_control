@@ -265,9 +265,3 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_position_distances = np.linalg.norm(final_positions - final_desired_positions, axis=1)
         distances_outside_box = np.array([self._compute_joint_distance_outside_box(pose) for pose in positions])
         return [distances, final_position_distances, distances_outside_box]
-
-
-
-
-
-
