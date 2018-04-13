@@ -2,7 +2,6 @@ from collections import OrderedDict
 import numpy as np
 from sawyer_control.sawyer_env_base import SawyerEnv
 from rllab.spaces.box import Box
-
 from sawyer_control.serializable import Serializable
 
 JOINT_ANGLES_HIGH = np.array([
@@ -88,27 +87,17 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         reward = self.reward_function(differences)
         return reward
 
-    def log_diagnostics(self, paths, logger=None):
-        if logger==None:
-            super().log_diagnostics(paths, logger=logger)
-        else:
-            statistics = OrderedDict()
-            stat_prefix = 'Test'
-            angle_differences, distances_outside_box = self._extract_experiment_info(paths)
-            statistics.update(self._statistics_from_observations(
-                angle_differences,
-                stat_prefix,
-                'Difference from Desired Joint Angle'
-            ))
+    def _get_statistics_from_paths(self, paths):
+        statistics = OrderedDict()
+        stat_prefix = 'Test'
+        angle_differences, distances_outside_box = self._extract_experiment_info(paths)
+        statistics.update(self._update_statistics_with_observation(
+            angle_differences,
+            stat_prefix,
+            'Difference from Desired Joint Angle'
+        ))
 
-            if self.safety_box:
-                statistics.update(self._statistics_from_observations(
-                    distances_outside_box,
-                    stat_prefix,
-                    'End Effector Distance Outside Box'
-                ))
-            for key, value in statistics.items():
-                logger.record_tabular(key, value)
+        return statistics
 
     def _extract_experiment_info(self, paths):
         obsSets = [path["observations"] for path in paths]
@@ -214,33 +203,23 @@ class SawyerXYZReachingEnv(SawyerEnv):
             self._randomize_desired_end_effector_pose()
         return self._get_observation()
 
-    def log_diagnostics(self, paths, logger=None):
-        if logger == None:
-            super().log_diagnostics(paths, logger=logger)
-        else:
-            statistics = OrderedDict()
-            stat_prefix = 'Test'
-            distances_from_target, final_position_distances, distances_outside_box = self._extract_experiment_info(paths)
-            statistics.update(self._statistics_from_observations(
-                distances_from_target,
-                stat_prefix,
-                'Difference from Desired Joint Angle'
-            ))
+    def _get_statistics_from_paths(self, paths):
+        statistics = OrderedDict()
+        stat_prefix = 'Test'
+        distances_from_target, final_position_distances, distances_outside_box = self._extract_experiment_info(paths)
+        statistics.update(self._update_statistics_with_observation(
+            distances_from_target,
+            stat_prefix,
+            'End Effector Distance from Target'
+        ))
 
-            statistics.update(self._statistics_from_observations(
-                final_position_distances,
-                stat_prefix,
-                'Final Distance from Desired End Effector Position'
-            ))
+        statistics.update(self._update_statistics_with_observation(
+            final_position_distances,
+            stat_prefix,
+            'Final End Effector Distance from Target'
+        ))
 
-            if self.safety_box:
-                statistics.update(self._statistics_from_observations(
-                    distances_outside_box,
-                    stat_prefix,
-                    'End Effector Distance Outside Box'
-                ))
-            for key, value in statistics.items():
-                logger.record_tabular(key, value)
+        return statistics
 
     def _extract_experiment_info(self, paths):
         obsSets = [path["observations"] for path in paths]

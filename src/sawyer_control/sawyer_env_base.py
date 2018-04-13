@@ -9,7 +9,6 @@ from sawyer_control.srv import observation
 from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from rllab.envs.base import Env
-
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -26,11 +25,11 @@ class SawyerEnv(Env, Serializable):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.safety_box_lows = np.array([0.1768254, -0.30626088, -1])
-        self.safety_box_highs = np.array([0.93623984, 0.51990008, 1])
+        self.safety_box_lows = np.array([-0.03900771, -0.32655392, -1])
+        self.safety_box_highs = np.array([0.79529649, 0.3227083, 1])
 
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
-        self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6']
+        self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
 
         self.action_mode = action_mode
         self.reward_magnitude = reward_magnitude
@@ -73,8 +72,8 @@ class SawyerEnv(Env, Serializable):
             return self._torque_act(action)
 
     def _jac_act_damp(self, action):
-        ee_pos = self._end_effector_pose()
-        target_ee_pos = (ee_pos + action)[:3]
+        ee_pos = self._end_effector_pose()[:3]
+        target_ee_pos = (ee_pos + action)
         prev_jacobian_pseudo_inverse = 0
         for i in range(self.pd_time_steps):
             ee_pos = self._end_effector_pose()[:3]
@@ -107,6 +106,7 @@ class SawyerEnv(Env, Serializable):
                     jacobian = truncated_dict[joint][1]
                     force = forces_dict[joint]
                     torques = torques + np.dot(jacobian.T, force).T
+                torques[-1] = 0
                 action = action + torques
 
         if self.in_reset:
@@ -229,7 +229,7 @@ class SawyerEnv(Env, Serializable):
         jac_counter = 0
         poses = np.array(poses)
         jacobians = np.array(jacobians)
-        for link in self.link_names[2:]:
+        for link in self.link_names:
             pose = poses[pose_counter:pose_counter + 3]
             jacobian = []
             for i in range(jac_counter, jac_counter+21, 7):
@@ -314,13 +314,19 @@ class SawyerEnv(Env, Serializable):
         return np.linalg.norm([x, y, z])
 
     def log_diagnostics(self, paths, logger=None):
-        if logger==None:
+        '''
+        :param paths: dictionary of trajectory information
+        :param logger: rllab logger or similar variant should be passed in
+        :return: None
+        '''
+        if logger == None:
             pass
         else:
-            raise NotImplementedError
+            statistics = self._get_statistics_from_paths(paths)
+            for key, value in statistics.items():
+                logger.record_tabular(key, value)
 
-
-    def _statistics_from_observations(self, observation, stat_prefix, log_title):
+    def _update_statistics_with_observation(self, observation, stat_prefix, log_title):
         statistics = OrderedDict()
         statistics.update(create_stats_ordered_dict(
             '{} {}'.format(stat_prefix, log_title),
@@ -328,6 +334,8 @@ class SawyerEnv(Env, Serializable):
         ))
         return statistics
 
+    def _get_statistics_from_paths(self, paths):
+        raise NotImplementedError()
 
     @property
     def action_space(self):
@@ -373,7 +381,18 @@ class SawyerEnv(Env, Serializable):
         max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
         self.joint_torque_high = max_torques
         self.joint_torque_low = -1 * max_torques
-        self._action_space = Box(
-            self.joint_torque_low,
-            self.joint_torque_high
-        )
+
+        if self.action_mode == 'position':
+            delta_factor = 0.1
+            delta_high = delta_factor * np.ones(3)
+            delta_low = delta_factor * -1 * np.ones(3)
+
+            self._action_space = Box(
+                delta_low,
+                delta_high,
+            )
+        else:
+            self._action_space = Box(
+                self.joint_torque_low,
+                self.joint_torque_high
+            )
