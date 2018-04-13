@@ -1,5 +1,4 @@
 import math
-import time
 from collections import OrderedDict
 import numpy as np
 import rospy
@@ -21,7 +20,7 @@ class SawyerEnv(Env, Serializable):
             update_hz=20,
             action_mode='torque',
             safety_box=True,
-            reward='huber',
+            reward='MSE',
             huber_delta=10,
             safety_force_magnitude=8,
             safety_force_temp=15,
@@ -36,7 +35,6 @@ class SawyerEnv(Env, Serializable):
         self.safety_box_highs = np.array([0.93623984, 0.51990008, 1])
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
-        self.arm_name = 'right'
         self.use_safety_checks = use_safety_checks
         self.reward_magnitude = reward_magnitude
         self.safety_box = safety_box
@@ -68,9 +66,8 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(1) #by default, no amplifications
+        self.amplify = np.ones(1)*2.5
         self.pd_time_steps = 50
-        self.jacobian_transpose_scale = 30
         self.jacobian_pseudo_inverse_torques_scale = 10
         self.damping_scale = 5
 
@@ -79,27 +76,6 @@ class SawyerEnv(Env, Serializable):
             self._jac_act_damp(action)
         else:
             return self._torque_act(action)
-
-    def _pos_act(self, action):
-        ee_pos = self._end_effector_pose()
-        target_ee_pos = (ee_pos + action)
-        for i in range(self.pd_time_steps):
-            cur_pos, cur_vel, _, ee_pos = self.request_observation()
-            torque_action = self.PositionPDController._compute_pd_forces(cur_pos, cur_vel, target_ee_pos) * 3
-            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-                break
-            self._torque_act(torque_action)
-
-    def _jac_act(self, action):
-        ee_pos = self._end_effector_pose()
-        target_ee_pos = (ee_pos + action)[:3]
-        for i in range(self.pd_time_steps):
-            ee_pos = self._end_effector_pose()[:3]
-            difference = (ee_pos - target_ee_pos)
-            torque_action = -1*self._jacobian_pseudo_inverse_torques(difference)
-            self._torque_act(torque_action)
-            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-                break
 
     def _jac_act_damp(self, action):
         ee_pos = self._end_effector_pose()
@@ -115,20 +91,14 @@ class SawyerEnv(Env, Serializable):
             if self._endpoint_within_threshold(ee_pos, target_ee_pos):
                 break
 
-    def _jacobian_transpose_torques(self, difference_ee_pos):
-        self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict['right_j6'][1]
-        prescaling_torques = ee_jac.T @ difference_ee_pos
-        return prescaling_torques * self.jacobian_transpose_scale
-
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
         ee_jac = self.pose_jacobian_dict['right_j6'][1]
         return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
-        inf = np.max(np.abs(ee_pos-target_ee_pos))
-        cond = inf < .01
+        maximum = np.max(np.abs(ee_pos-target_ee_pos))
+        cond = maximum < .01
         return cond
 
     def _torque_act(self, action):
