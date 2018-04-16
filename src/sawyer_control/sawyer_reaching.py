@@ -42,17 +42,8 @@ JOINT_VALUE_LOW = {
     'torque': JOINT_TORQUE_LOW,
 }
 
-END_EFFECTOR_POS_LOW = [
-    0.3404830862298487,
-    -1.2633121086809487,
-    -0.5698485041484043
-]
-
-END_EFFECTOR_POS_HIGH = [
-    1.1163239572333106,
-    0.003933425621414761,
-    0.795699462010194
-]
+END_EFFECTOR_POS_LOW = -1.2 * np.ones(3)
+END_EFFECTOR_POS_HIGH = 1.2 *np.ones(3)
 
 END_EFFECTOR_ANGLE_LOW = -1*np.ones(4)
 END_EFFECTOR_ANGLE_HIGH = np.ones(4)
@@ -206,7 +197,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
     def _get_statistics_from_paths(self, paths):
         statistics = OrderedDict()
         stat_prefix = 'Test'
-        distances_from_target, final_position_distances, distances_outside_box = self._extract_experiment_info(paths)
+        distances_from_target, final_position_distances = self._extract_experiment_info(paths)
         statistics.update(self._update_statistics_with_observation(
             distances_from_target,
             stat_prefix,
@@ -230,6 +221,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_desired_positions = []
         for obsSet in obsSets:
             for observation in obsSet:
+                import ipdb; ipdb.set_trace()
                 pos = np.array(observation[21:24])
                 des = np.array(observation[28:31])
                 distances.append(np.linalg.norm(pos - des))
@@ -242,5 +234,4 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_positions = np.array(final_positions)
         final_desired_positions = np.array(final_desired_positions)
         final_position_distances = np.linalg.norm(final_positions - final_desired_positions, axis=1)
-        distances_outside_box = np.array([self._compute_joint_distance_outside_box(pose) for pose in positions])
-        return [distances, final_position_distances, distances_outside_box]
+        return [distances, final_position_distances]

@@ -25,8 +25,8 @@ class SawyerEnv(Env, Serializable):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.safety_box_lows = np.array([-0.03900771, -0.32655392, -1])
-        self.safety_box_highs = np.array([0.79529649, 0.3227083, 1])
+        self.safety_box_lows = np.array([0.03485613, -1.07289088, -1])
+        self.safety_box_highs = np.array([1, 0.83362335, 1])
 
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
@@ -60,8 +60,8 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(7)*2.5
-        self.pd_time_steps = 50
+        self.amplify = np.ones(7) * self.joint_torque_high
+        self.pd_time_steps = 100
         self.jacobian_pseudo_inverse_torques_scale = 10
         self.damping_scale = 5
 
@@ -91,9 +91,10 @@ class SawyerEnv(Env, Serializable):
         return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.jacobian_pseudo_inverse_torques_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
-        maximum = np.max(np.abs(ee_pos-target_ee_pos))
+        maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
         cond = maximum < .01
-        return cond
+        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.02
+        return cond and z_cond
 
     def _torque_act(self, action):
         if self.safety_box:
@@ -110,7 +111,7 @@ class SawyerEnv(Env, Serializable):
                 action = action + torques
 
         if self.in_reset:
-            np.clip(action, -4, 4, out=action)
+            np.clip(action, -5, 5, out=action)
         else:
             action = self.amplify * action
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
@@ -151,7 +152,7 @@ class SawyerEnv(Env, Serializable):
         return reward
 
     def _Norm_reward(self, differences):
-        return np.linalg.norm(differences)
+        return -1*np.linalg.norm(differences)
 
     def compute_angle_difference(self, angles1, angles2):
         self._wrap_angles(angles1)
