@@ -221,7 +221,6 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_desired_positions = []
         for obsSet in obsSets:
             for observation in obsSet:
-                import ipdb; ipdb.set_trace()
                 pos = np.array(observation[21:24])
                 des = np.array(observation[28:31])
                 distances.append(np.linalg.norm(pos - des))
