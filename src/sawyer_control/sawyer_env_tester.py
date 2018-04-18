@@ -3,7 +3,7 @@ import numpy as np
 
 env = SawyerXYZReachingEnv(desired=[0.97711039, 0.56662792, 0.27901027], reward='norm', safety_box=True, action_mode='position')
 total = 0
-act = np.array([.5, 1, -.1])
+act = np.array([-.1, .1, 0])*1
 num_steps = 5
 # env.reset()
 # original = env._end_effector_pose()[:3]

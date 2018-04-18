@@ -93,9 +93,10 @@ class SawyerEnv(Env, Serializable):
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
-        cond = maximum < .01
-        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.01
-        return cond and z_cond
+        cond = maximum < .005
+        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.005
+        cond = cond and z_cond
+        return cond
 
     def _torque_act(self, action):
         if self.safety_box:
