@@ -25,8 +25,8 @@ class SawyerEnv(Env, Serializable):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
         
-        self.safety_box_lows = np.array([0, -1.07289088, 0])
-        self.safety_box_highs = np.array([1, 0.8, 1])
+        self.safety_box_lows = np.array([0.25, -0.7649703, 0])
+        self.safety_box_highs = np.array([1, 0.65, 1])
 
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
