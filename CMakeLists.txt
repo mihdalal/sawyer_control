@@ -61,6 +61,7 @@ catkin_python_setup()
    getRobotPoseAndJacobian.srv
    observation.srv
    ik.srv
+   image.srv
  )
 
 ## Generate actions in the 'action' folder

@@ -21,13 +21,18 @@ class AnglePDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self._des_angles = {'right_j0': 0.298009765625,
-                            'right_j2': -0.350818359375,
-                            'right_j4': 0.0557021484375,
-                            'right_j3': 1.1678642578125,
-                            'right_j1': -1.1768076171875,
-                            'right_j6': 3.2978828125,
-                            'right_j5': 1.3938330078125}
+        # #self._des_angles = {'right_j0': 0.298009765625,
+        #                     'right_j2': -0.350818359375,
+        #                     'right_j4': 0.0557021484375,
+        #                     'right_j3': 1.1678642578125,
+        #                     'right_j1': -1.1768076171875,
+        #                     'right_j6': 3.2978828125,
+        #                     'right_j5': 1.3938330078125}
+
+
+        self._des_angles = {'right_j6': 3.272990234375, 'right_j5': 1.178814453125, 'right_j4': 1.732162109375,
+                            'right_j3': 1.4190224609375, 'right_j2': -2.97365625,
+                            'right_j1': 0.0471865234375, 'right_j0': -0.3276484375}
 
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3

@@ -12,13 +12,13 @@ from rllab.envs.base import Env
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
-            update_hz=20,
+            update_hz=20, #look into the freq update
             action_mode='torque',
             safety_box=True,
             reward='MSE',
             huber_delta=10,
             safety_force_magnitude=9,
-            safety_force_temp=15,
+            safety_force_temp=18,
             safe_reset_length=150,
             reward_magnitude=1,
     ):
@@ -93,8 +93,8 @@ class SawyerEnv(Env, Serializable):
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
-        cond = maximum < .005
-        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.005
+        cond = maximum < .02
+        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.02
         cond = cond and z_cond
         return cond
 
@@ -188,6 +188,11 @@ class SawyerEnv(Env, Serializable):
             endpoint_pose,
             self.desired
         ))
+        return temp
+
+    def _get_image(self):
+        temp = self.request_image()
+        print(temp)
         return temp
 
     def _safe_move_to_neutral(self):
@@ -366,6 +371,18 @@ class SawyerEnv(Env, Serializable):
                     obs.velocities,
                     obs.torques,
                     obs.endpoint_pose
+            )
+        except rospy.ServiceException as e:
+            print(e)
+
+
+    def request_image(self):
+        rospy.wait_for_service('images')
+        try:
+            request = rospy.ServiceProxy('images', image, persistent=True)
+            obs = request()
+            return (
+                    obs.image
             )
         except rospy.ServiceException as e:
             print(e)
