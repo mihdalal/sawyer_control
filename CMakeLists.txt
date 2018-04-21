@@ -52,12 +52,12 @@ catkin_python_setup()
    FILES
    observations.msg
    actions.msg
+   angle_action.msg
  )
 
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   action.srv
    getRobotPoseAndJacobian.srv
    observation.srv
    ik.srv
