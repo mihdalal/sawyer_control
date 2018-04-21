@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 import intera_interface as ii
 
