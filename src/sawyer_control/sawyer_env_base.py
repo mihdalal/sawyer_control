@@ -7,10 +7,13 @@ from collections import OrderedDict
 from rllab.spaces.box import Box
 from sawyer_control.srv import observation
 from sawyer_control.msg import actions
-from sawyer_control.msg import angle_action
+#from sawyer_control.msg import angle_action
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
+from sawyer_control.srv import angle_action
+from sawyer_control.srv import image
 from rllab.envs.base import Env
+import time
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -19,8 +22,8 @@ class SawyerEnv(Env, Serializable):
             safety_box=True,
             reward='norm',
             huber_delta=10,
-            safety_force_magnitude=9,
-            safety_force_temp=18,
+            safety_force_magnitude=5,
+            safety_force_temp=5,
             safe_reset_length=150,
             reward_magnitude=1,
             ee_pd_time_steps=25,
@@ -30,13 +33,15 @@ class SawyerEnv(Env, Serializable):
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
-        
-        self.safety_box_lows = np.array([0., -0.5, 0])
-        self.safety_box_highs = np.array([.9, 0.4, 1])
-
+        self.latest_t = 0
+        self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
+        self.reset_safety_box_highs = np.array([.9, 0.4, 2])
+        self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
+        self.safety_box_highs = self.not_reset_safety_box_highs = [0.7,  0.5,  0.7]
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-
+        self.ee_safety_box_high = np.array([0.7, 0.2, 0.35])
+        self.ee_safety_box_low = np.array([0.38, -0.2, 0.0])
         self.action_mode = action_mode
         self.reward_magnitude = reward_magnitude
         self.safety_box = safety_box
@@ -65,39 +70,43 @@ class SawyerEnv(Env, Serializable):
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(7) * self.joint_torque_high
-
+        self.amplify = np.ones(7)*self.joint_torque_high
+        self.actions = []
 
     def _act(self, action):
         if self.action_mode == 'position':
-            action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
             action /= 10.0
             self._joint_act(action)
         else:
-            return self._torque_act(action)
+            self._torque_act(action)
+
+        t1 = time.time()
+
+        return
 
     def _joint_act(self, action):
         ee_pos = self._end_effector_pose()
         target_ee_pos = (ee_pos[:3] + action)
+        target_ee_pos = np.clip(target_ee_pos, self.ee_safety_box_low, self.ee_safety_box_high)
         target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
         angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
         self.send_angle_action(angles)
 
-    def _jac_act_damp(self, action):
-        ee_pos = self._end_effector_pose()[:3]
-        action = np.clip(action, -1*self.ee_pd_action_limit, self.ee_pd_action_limit)
-        action /= 10.0
-        target_ee_pos = (ee_pos + action)
-        prev_torques = 0
-        for i in range(self.ee_pd_time_steps):
-            ee_pos = self._end_effector_pose()[:3]
-            difference = (target_ee_pos - ee_pos) * -1
-            torques = self._jacobian_pseudo_inverse_torques(difference)
-            torques = -1*(torques * self.ee_pd_scale + self.ee_pd_damping_scale * (torques - prev_torques))
-            prev_torques = torques
-            self._torque_act(torques)
-            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-                break
+    # def _jac_act_damp(self, action):
+    #     ee_pos = self._end_effector_pose()[:3]
+    #     action = np.clip(action, -1*self.ee_pd_action_limit, self.ee_pd_action_limit)
+    #     action /= 10.0
+    #     target_ee_pos = (ee_pos + action)
+    #     prev_torques = 0
+    #     for i in range(self.ee_pd_time_steps):
+    #         ee_pos = self._end_effector_pose()[:3]
+    #         difference = (target_ee_pos - ee_pos) * -1
+    #         torques = self._jacobian_pseudo_inverse_torques(difference)
+    #         torques = -1*(torques * self.ee_pd_scale + self.ee_pd_damping_scale * (torques - prev_torques))
+    #         prev_torques = torques
+    #         self._torque_act(torques)
+    #         if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+    #             break
 
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
@@ -112,7 +121,15 @@ class SawyerEnv(Env, Serializable):
         return cond
 
     def _torque_act(self, action):
+        if not self.in_reset:
+            self.actions.append(action)
         if self.safety_box:
+            if self.in_reset:
+                self.safety_box_highs = self.reset_safety_box_highs
+                self.safety_box_lows = self.reset_safety_box_lows
+            else:
+                self.safety_box_lows = self.not_reset_safety_box_lows
+                self.safety_box_highs = self.not_reset_safety_box_highs
             self.get_latest_pose_jacobian_dict()
             truncated_dict = self.check_joints_in_box()
             if len(truncated_dict) > 0:
@@ -295,6 +312,7 @@ class SawyerEnv(Env, Serializable):
         curr_x = pose[0]
         curr_y = pose[1]
         curr_z = pose[2]
+
         if curr_x > self.safety_box_highs[0]:
             x = -1 * np.exp(np.abs(curr_x - self.safety_box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
         elif curr_x < self.safety_box_lows[0]:
@@ -368,14 +386,16 @@ class SawyerEnv(Env, Serializable):
     def init_rospy(self, update_hz):
         rospy.init_node('sawyer_env', anonymous=True)
         self.action_publisher = rospy.Publisher('actions_publisher', actions, queue_size=10)
-        self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
+        #self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
         self.rate = rospy.Rate(update_hz)
 
     def send_action(self, action):
         self.action_publisher.publish(action)
 
     def send_angle_action(self, action):
-        self.angle_action_publisher.publish(action)
+        #self.angle_action_publisher.publish(action)
+        self.request_angle_action(action)
+
 
     def request_observation(self):
         rospy.wait_for_service('observations')
@@ -399,6 +419,18 @@ class SawyerEnv(Env, Serializable):
 
             return (
                 resp.joint_angles
+            )
+        except rospy.ServiceException as e:
+            print(e)
+
+
+    def request_angle_action(self, angles):
+        rospy.wait_for_service('angle_action')
+        try:
+            execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
+            resp = execute_action(angles)
+            return (
+                    None
             )
         except rospy.ServiceException as e:
             print(e)
