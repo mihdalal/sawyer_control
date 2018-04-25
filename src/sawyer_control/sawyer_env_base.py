@@ -13,7 +13,6 @@ from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from rllab.envs.base import Env
-import time
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -79,9 +78,6 @@ class SawyerEnv(Env, Serializable):
             self._joint_act(action)
         else:
             self._torque_act(action)
-
-        t1 = time.time()
-
         return
 
     def _joint_act(self, action):
@@ -92,21 +88,21 @@ class SawyerEnv(Env, Serializable):
         angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
         self.send_angle_action(angles)
 
-    # def _jac_act_damp(self, action):
-    #     ee_pos = self._end_effector_pose()[:3]
-    #     action = np.clip(action, -1*self.ee_pd_action_limit, self.ee_pd_action_limit)
-    #     action /= 10.0
-    #     target_ee_pos = (ee_pos + action)
-    #     prev_torques = 0
-    #     for i in range(self.ee_pd_time_steps):
-    #         ee_pos = self._end_effector_pose()[:3]
-    #         difference = (target_ee_pos - ee_pos) * -1
-    #         torques = self._jacobian_pseudo_inverse_torques(difference)
-    #         torques = -1*(torques * self.ee_pd_scale + self.ee_pd_damping_scale * (torques - prev_torques))
-    #         prev_torques = torques
-    #         self._torque_act(torques)
-    #         if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-    #             break
+    def _jac_act_damp(self, action):
+        ee_pos = self._end_effector_pose()[:3]
+        action = np.clip(action, -1*self.ee_pd_action_limit, self.ee_pd_action_limit)
+        action /= 10.0
+        target_ee_pos = (ee_pos + action)
+        prev_torques = 0
+        for i in range(self.ee_pd_time_steps):
+            ee_pos = self._end_effector_pose()[:3]
+            difference = (target_ee_pos - ee_pos) * -1
+            torques = self._jacobian_pseudo_inverse_torques(difference)
+            torques = -1*(torques * self.ee_pd_scale + self.ee_pd_damping_scale * (torques - prev_torques))
+            prev_torques = torques
+            self._torque_act(torques)
+            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
+                break
 
     def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
         self.get_latest_pose_jacobian_dict()
@@ -221,8 +217,10 @@ class SawyerEnv(Env, Serializable):
 
     def _get_image(self):
         temp = self.request_image()
-        print(temp)
-        return temp
+
+        img = np.array(temp)
+        image = img.reshape(810, 1125, 3)
+        return image
 
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):

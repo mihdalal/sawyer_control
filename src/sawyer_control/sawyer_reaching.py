@@ -58,6 +58,7 @@ END_EFFECTOR_VALUE_HIGH = {
     'angle': END_EFFECTOR_ANGLE_HIGH,
 }
 
+
 class SawyerJointSpaceReachingEnv(SawyerEnv):
     def __init__(self,
                  desired = None,
@@ -184,7 +185,11 @@ class SawyerXYZReachingEnv(SawyerEnv):
         self._observation_space = Box(lows, highs)
 
     def _randomize_desired_end_effector_pose(self):
-        self.desired = np.random.uniform(self.not_reset_safety_box_lows, self.not_reset_safety_box_highs, size=(1, 3))[0]
+        reaching_box_lows = self.not_reset_safety_box_lows + np.ones(3)*.2
+        reaching_box_highs = self.not_reset_safety_box_highs - np.ones(3)*.2
+        print(reaching_box_highs)
+        print(reaching_box_lows)
+        self.desired = np.random.uniform(reaching_box_lows, reaching_box_highs, size=(1, 3))[0]
 
     def reset(self):
         self.in_reset = True
