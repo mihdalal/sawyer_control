@@ -13,6 +13,7 @@ from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from rllab.envs.base import Env
+import time
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -23,7 +24,7 @@ class SawyerEnv(Env, Serializable):
             huber_delta=10,
             safety_force_magnitude=5,
             safety_force_temp=5,
-            safe_reset_length=150,
+            safe_reset_length=200,
             reward_magnitude=1,
             ee_pd_time_steps=25,
             ee_pd_scale = 25,
@@ -50,7 +51,7 @@ class SawyerEnv(Env, Serializable):
         self.safety_force_temp = safety_force_temp
         self.AnglePDController = AnglePDController()
 
-        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
+        max_torques = 1/2 * np.array([8, 7, 6, 5, 4, 3, 2])
         self.joint_torque_high = max_torques
         self.joint_torque_low = -1 * max_torques
         self.ee_pd_time_steps = ee_pd_time_steps
@@ -71,6 +72,7 @@ class SawyerEnv(Env, Serializable):
         self.in_reset = True
         self.amplify = np.ones(7)*self.joint_torque_high
         self.actions = []
+        self.prev = time.time()
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -144,6 +146,9 @@ class SawyerEnv(Env, Serializable):
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
         self.send_action(action)
         self.rate.sleep()
+        curr = time.time()
+        # print(curr-self.prev)
+        self.prev = curr
 
     def _reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles

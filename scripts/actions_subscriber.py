@@ -11,9 +11,7 @@ def execute_action(action_msg):
 
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
-
     arm.set_joint_torques(joint_to_values)
-    print(rospy.get_time(), action)
 
 def listener():
 

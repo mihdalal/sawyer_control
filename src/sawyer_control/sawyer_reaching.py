@@ -184,12 +184,13 @@ class SawyerXYZReachingEnv(SawyerEnv):
 
         self._observation_space = Box(lows, highs)
 
+    def _get_random_ee_pose(self, batch_size=1):
+        reaching_box_lows = self.not_reset_safety_box_lows + np.ones(3) * .2
+        reaching_box_highs = self.not_reset_safety_box_highs - np.ones(3) * .2
+        return np.random.uniform(reaching_box_lows, reaching_box_highs, size=(batch_size, 3))
+
     def _randomize_desired_end_effector_pose(self):
-        reaching_box_lows = self.not_reset_safety_box_lows + np.ones(3)*.2
-        reaching_box_highs = self.not_reset_safety_box_highs - np.ones(3)*.2
-        print(reaching_box_highs)
-        print(reaching_box_lows)
-        self.desired = np.random.uniform(reaching_box_lows, reaching_box_highs, size=(1, 3))[0]
+        self.desired = self._get_random_ee_pose()[0]
 
     def reset(self):
         self.in_reset = True

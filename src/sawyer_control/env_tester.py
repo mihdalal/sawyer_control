@@ -2,7 +2,7 @@ from sawyer_reaching import SawyerXYZReachingEnv
 import numpy as np
 env = SawyerXYZReachingEnv(reward='norm', safety_box=True, action_mode='torque', update_hz=20)
 
-env.reset()
+# env.reset()
 # actions = np.load('actions.npy')
 # import pdb; pdb.set_trace()
 #for action in actions:
@@ -20,7 +20,7 @@ env.reset()
 #
 # #for i in range(1000):
 # #    env._act(np.zeros(7))
-# print(env._end_effector_pose())
-print(env.desired)
-env._randomize_desired_end_effector_pose()
-print(env.desired)
+print(env._end_effector_pose())
+# print(env.desired)
+# env._randomize_desired_end_effector_pose()
+# print(env.desired)

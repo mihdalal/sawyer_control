@@ -75,11 +75,11 @@ class KinectRecorder(object):
         __name__ = '__main__'
         if True:
             # the main instance one also records actions and joint angles
-
             self.instance_type = 'main'
             # self._gripper = None
             # self.gripper_name = '_'.join([side, 'gripper'])
             import intera_interface
+            rospy.init_node('main')
             self._limb_right = intera_interface.Limb(side)
         else:
             # auxiliary recorder
@@ -267,16 +267,20 @@ class KinectRecorder(object):
                 cPickle.dump(dict, f)
 
 def get_observation(unused):
-    return observationResponse(kr.ltob)
+    import ipdb; ipdb.set_trace()
+    img = kr.ltob.img_cv2
+    img = numpy.array(img)
+    image = img.reshape(2733750, 1, 1).flatten().tolist()
+    return imageResponse(image)
 
 def image_server():
 
-    rospy.init_node('image_server', anonymous=True)
-    import ipdb; ipdb.set_trace()
+    # rospy.init_node('image_server', anonymous=True)
+    # import ipdb; ipdb.set_trace()
     s = rospy.Service('images', image, get_observation)
     rospy.spin()
 
 if __name__ == "__main__":
-    kr = KinectRecorder()
+    kr = KinectRecorder('')
     image_server()
 
