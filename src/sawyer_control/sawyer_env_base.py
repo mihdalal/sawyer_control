@@ -7,9 +7,10 @@ from collections import OrderedDict
 from rllab.spaces.box import Box
 from sawyer_control.srv import observation
 from sawyer_control.msg import actions
-from sawyer_control.msg import angle_action
+from sawyer_control.srv import angle_action
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
+from sawyer_control.srv import image
 from rllab.envs.base import Env
 class SawyerEnv(Env, Serializable):
     def __init__(
@@ -27,6 +28,7 @@ class SawyerEnv(Env, Serializable):
             ee_pd_scale = 25,
             ee_pd_damping_scale=20,
             ee_pd_action_limit=1,
+            img_observation = False
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
@@ -36,6 +38,8 @@ class SawyerEnv(Env, Serializable):
 
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
+        self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
+        self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
 
         self.action_mode = action_mode
         self.reward_magnitude = reward_magnitude
@@ -53,7 +57,7 @@ class SawyerEnv(Env, Serializable):
         self.ee_pd_scale = ee_pd_scale
         self.ee_pd_damping_scale = ee_pd_damping_scale
         self.ee_pd_action_limit = 1
-
+        self.img_observation = img_observation
         if reward == 'MSE':
             self.reward_function = self._MSE_reward
         elif reward == 'huber':
@@ -67,11 +71,20 @@ class SawyerEnv(Env, Serializable):
         self.in_reset = True
         self.amplify = np.ones(7) * self.joint_torque_high
 
+#[ 0.40903145 -0.0270384   0.27283809]
+#[0.53012633 0.0026125  0.11447845]
+#[ 0.62912852 -0.28359586  0.08077029]
+#[0.62594277 0.25843114 0.08163491]
+#max = [0.63, 0.258, 0.3]
+#min = [0.43, -0.28, 0.09]
 
     def _act(self, action):
+        # import ipdb; ipdb.set_trace()
         if self.action_mode == 'position':
-            action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
-            action /= 10.0
+            
+            #action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
+            action /= 10.
+
             self._joint_act(action)
         else:
             return self._torque_act(action)
@@ -79,6 +92,7 @@ class SawyerEnv(Env, Serializable):
     def _joint_act(self, action):
         ee_pos = self._end_effector_pose()
         target_ee_pos = (ee_pos[:3] + action)
+        target_ee_pos = np.clip(target_ee_pos, self.ee_safety_box_low, self.ee_safety_box_high)
         target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
         angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
         self.send_angle_action(angles)
@@ -99,10 +113,10 @@ class SawyerEnv(Env, Serializable):
             if self._endpoint_within_threshold(ee_pos, target_ee_pos):
                 break
 
-    def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
-        self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict['right_l6'][1]
-        return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.ee_pd_scale
+    # def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
+    #     self.get_latest_pose_jacobian_dict()
+    #     ee_jac = self.pose_jacobian_dict['right_l6'][1]
+    #     return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.ee_pd_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
@@ -181,6 +195,8 @@ class SawyerEnv(Env, Serializable):
         reward = self.reward() * self.reward_magnitude
         done = False
         info = {}
+        if self.img_observation:
+            observation = self._get_image()
         return observation, reward, done, info
 
     def reward(self):
@@ -204,7 +220,9 @@ class SawyerEnv(Env, Serializable):
 
     def _get_image(self):
         temp = self.request_image()
-        print(temp)
+        #update the get image in server. get an 84 x 84 x 3
+        #reshape to 84 x 84 x 3
+
         return temp
 
     def _safe_move_to_neutral(self):
@@ -368,14 +386,15 @@ class SawyerEnv(Env, Serializable):
     def init_rospy(self, update_hz):
         rospy.init_node('sawyer_env', anonymous=True)
         self.action_publisher = rospy.Publisher('actions_publisher', actions, queue_size=10)
-        self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
+        #self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
         self.rate = rospy.Rate(update_hz)
 
     def send_action(self, action):
         self.action_publisher.publish(action)
 
     def send_angle_action(self, action):
-        self.angle_action_publisher.publish(action)
+        #self.angle_action_publisher.publish(action)
+        self.request_angle_action(action)
 
     def request_observation(self):
         rospy.wait_for_service('observations')
@@ -390,6 +409,18 @@ class SawyerEnv(Env, Serializable):
             )
         except rospy.ServiceException as e:
             print(e)
+
+    def request_angle_action(self, angles):
+        rospy.wait_for_service('angle_action')
+        try:
+            execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
+            resp = execute_action(angles)
+            return (
+                    None
+            )
+        except rospy.ServiceException as e:
+            print(e)
+
 
     def request_ik_angles(self, ee_pos, joint_angles):
         rospy.wait_for_service('ik')

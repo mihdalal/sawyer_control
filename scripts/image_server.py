@@ -55,11 +55,9 @@ class KinectRecorder(object):
         """
 
         side = "right"
-        #import ipdb; ipdb.set_trace()
-        self.ltob = Latest_observation()
         self.state_sequence_length = seq_len
         self.overwrite = True
-        self.use_aux = use_aux
+        self.use_aux = False
         self.endeffector_pos = None
         self.angles = None
 
@@ -73,29 +71,17 @@ class KinectRecorder(object):
         self.highres_imglist = []
 
         __name__ = '__main__'
-        if True:
-            # the main instance one also records actions and joint angles
-
-            self.instance_type = 'main'
-            # self._gripper = None
-            # self.gripper_name = '_'.join([side, 'gripper'])
-            import intera_interface
-            self._limb_right = intera_interface.Limb(side)
-        else:
-            # auxiliary recorder
-            rospy.init_node('aux_recorder1')
-            rospy.loginfo("init node aux_recorder1")
-            self.instance_type = 'aux1'
-
+        self.instance_type = 'main'
+        print 'init recorder with instance type', self.instance_type
 
         prefix = self.instance_type
 
-        self.save_dir = save_dir
-
-        self.ltob_aux1 = Latest_observation()
-
         rospy.Subscriber("/kinect2/hd/image_color", Image_msg, self.store_latest_im)
         rospy.Subscriber("/kinect2/sd/image_depth_rect", Image_msg, self.store_latest_d_im)
+
+        self.save_dir = save_dir
+        self.ltob = Latest_observation()
+        self.ltob_aux1 = Latest_observation()
 
         self.bridge = CvBridge()
         self.ngroup = 1000
@@ -118,6 +104,8 @@ class KinectRecorder(object):
                 rospy.spin()
 
             thread.start_new(spin_thread, ())
+            print "Recorder intialized."
+            print "started spin thread"
             self.action_list, self.joint_angle_list, self.cart_pos_list = [], [], []
 
     def save_kinect_handler(self, req):
@@ -176,14 +164,20 @@ class KinectRecorder(object):
         self.ltob.d_img_cropped_8bit = img
 
     def store_latest_im(self, data):
-
         self.ltob.img_msg = data
         self.ltob.tstamp_img = rospy.get_time()
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")  # (1920, 1080)
 
         self.ltob.img_cv2 = self.crop_highres(cv_image)
         self.ltob.img_cropped = self.crop_lowres(cv_image)
-
+        # from PIL import Image
+        # img = np.copy(self.ltob.img_cropped)
+        # img = img.flatten()
+        # img = img.tolist()
+        # img = np.array(img)
+        # img = img.reshape(64, 64, 3)
+        # img = Image.fromarray(img)
+        # img.save('hello.png')
     def crop_highres(self, cv_image):
         startcol = 180
         startrow = 0
@@ -191,7 +185,7 @@ class KinectRecorder(object):
         endrow = startrow + 1500
         cv_image = copy.deepcopy(cv_image[startrow:endrow, startcol:endcol])
 
-        cv_image = cv2.resize(cv_image, (0, 0), fx=0.75, fy=0.75, interpolation=cv2.INTER_AREA)
+        cv_image = cv2.resize(cv_image, (0, 0), fx=0.056, fy=0.07777777777, interpolation=cv2.INTER_AREA)
         if self.instance_type == 'main':
             cv_image = imutils.rotate_bound(cv_image, 180)
         return cv_image
@@ -227,20 +221,111 @@ class KinectRecorder(object):
                 rospy.logerr("Service call failed: %s" % (e,))
                 raise ValueError('get_kinectdata service failed')
 
+        self._init_traj_local(itr)
+
+        if ((itr + 1) % self.ngroup) == 0:
+            self.igrp += 1
+
+    def _init_traj_local(self, itr):
+        """
+        :param itr: number of current trajecotry
+        :return:
+        """
+        self.itr = itr
+        self.group_folder = self.save_dir + '/traj_group{}'.format(self.igrp)
+
+        rospy.loginfo("Init trajectory {} in group {}".format(itr, self.igrp))
+
+        traj_folder = self.group_folder + '/traj{}'.format(itr)
+        self.image_folder = traj_folder + '/images'
+        self.depth_image_folder = traj_folder + '/depth_images'
+
+        if not os.path.exists(traj_folder):
+            os.makedirs(traj_folder)
+        else:
+            if not self.overwrite:
+                raise ValueError("trajectory {} already exists".format(traj_folder))
+        if not os.path.exists(self.image_folder):
+            os.makedirs(self.image_folder)
+        if not os.path.exists(self.depth_image_folder):
+            os.makedirs(self.depth_image_folder)
+
+    def delete_traj(self, tr):
+        assert self.instance_type == 'main'
+        if self.use_aux:
+            try:
+                rospy.wait_for_service('delete_traj', 0.1)
+                resp1 = self.delete_traj_func(tr, self.igrp)
+            except (rospy.ServiceException, rospy.ROSException), e:
+                rospy.logerr("Service call failed: %s" % (e,))
+                raise ValueError('delete traj service failed')
+        self._delete_traj_local(tr)
+
+    def _delete_traj_local(self, i_tr):
+        self.group_folder = self.save_dir + '/traj_group{}'.format(self.igrp)
+        traj_folder = self.group_folder + '/traj{}'.format(i_tr)
+        shutil.rmtree(traj_folder)
+        print 'deleted {}'.format(traj_folder)
+
+    def save(self, event):
+        self.t_savereq = rospy.get_time()
+        assert self.instance_type == 'main'
+        if self.use_aux:
+            # request save at auxiliary recorders
+            try:
+                rospy.wait_for_service('get_kinectdata', 0.1)
+                resp1 = self.save_kinectdata_func(i_save)
+            except (rospy.ServiceException, rospy.ROSException), e:
+                rospy.logerr("Service call failed: %s" % (e,))
+                raise ValueError('get_kinectdata service failed')
+
+        if self.ltob.img_cv2 is not None:
+            if self.save_images:
+                a = 1
+            #     self._save_img_local(1)
+			#
+            # if self.save_actions:
+            #     self.save_state(1)
+			#
+            # if self.save_gif:
+            #     highres = cv2.cvtColor(self.ltob.img_cv2, cv2.COLOR_BGR2RGB)
+            #     print 'highres dim', highres.shape
+            #     self.highres_imglist.append(highres)
+
+    def save_highres(self):
+        # clip = mpy.ImageSequenceClip(self.highres_imglist, fps=10)
+        # clip.write_gif(self.image_folder + '/highres_traj{}.mp4'.format(self.itr))
+        writer = imageio.get_writer(self.image_folder + '/highres_traj{}.mp4'.format(self.itr), fps=10)
+        print 'shape highes:', self.highres_imglist[0].shape
+        for im in self.highres_imglist:
+            writer.append_data(im)
+        writer.close()
 
 
 
 
-    def get_aux_img(self):
-        try:
-            rospy.wait_for_service('get_kinectdata', 0.1)
-            resp1 = self.get_kinectdata_func()
-            self.ltob_aux1.img_msg = resp1.image
-        except (rospy.ServiceException, rospy.ROSException), e:
-            rospy.logerr("Service call failed: %s" % (e,))
-            raise ValueError('get_kinectdata service failed')
+    def _save_img_local(self, i_save):
 
+        pref = self.instance_type
 
+        # saving image
+        # saving the full resolution image
+        if self.ltob.img_cv2 is not None:
+            image_name = self.image_folder + "/" + pref + "_full_cropped_im{0}".format(str(i_save).zfill(2))
+            image_name += "_time{0}.jpg".format(self.ltob.tstamp_img)
+
+            cv2.imwrite(image_name, self.ltob.img_cv2, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        else:
+            raise ValueError('img_cv2 no data received')
+
+        # saving the cropped and downsized image
+        if self.ltob.img_cropped is not None:
+            image_name = self.image_folder + "/" + pref + "_cropped_im{0}_time{0}.png".format(i_save,
+                                                                                              self.ltob.tstamp_img)
+            cv2.imwrite(image_name, self.ltob.img_cropped, [cv2.IMWRITE_PNG_STRATEGY_DEFAULT, 1])
+            print 'saving small image to ', image_name
+        else:
+            raise ValueError('img_cropped no data received')
 
         # saving the depth data
         # saving the cropped depth data in a Pickle file
@@ -267,16 +352,21 @@ class KinectRecorder(object):
                 cPickle.dump(dict, f)
 
 def get_observation(unused):
-    return observationResponse(kr.ltob)
+    img = kr.ltob.img_cv2
+    #img = img.reshape(21168, 1, 1)
+    img = img.flatten()
+    img = img.tolist()
+    return imageResponse(img)
 
 def image_server():
 
-    rospy.init_node('image_server', anonymous=True)
-    import ipdb; ipdb.set_trace()
+    # rospy.init_node('image_server', anonymous=True)
+
     s = rospy.Service('images', image, get_observation)
     rospy.spin()
 
 if __name__ == "__main__":
-    kr = KinectRecorder()
+    rospy.init_node('hello')
+    kr = KinectRecorder('~/Documents')
     image_server()
 

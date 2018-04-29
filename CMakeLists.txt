@@ -52,7 +52,8 @@ catkin_python_setup()
    FILES
    observations.msg
    actions.msg
-   angle_action.msg
+  
+  
  )
 
 ## Generate services in the 'srv' folder
@@ -62,6 +63,7 @@ catkin_python_setup()
    observation.srv
    ik.srv
    image.srv
+   angle_action.srv
  )
 
 ## Generate actions in the 'action' folder
