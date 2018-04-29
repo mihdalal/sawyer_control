@@ -222,9 +222,9 @@ class SawyerEnv(Env, Serializable):
 
     def _get_image(self):
         temp = self.request_image()
-
         img = np.array(temp)
-        image = img.reshape(810, 1125, 3)
+        image = img.reshape(84, 84, 3)
+        #add image flipping across horizontal
         return image
 
     def _safe_move_to_neutral(self):
