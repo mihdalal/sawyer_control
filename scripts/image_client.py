@@ -23,4 +23,4 @@ if __name__ == "__main__":
     img = img.reshape(84, 84, 3)
     #cv2.imshow('image', img)
     img = cv2.flip(img, 0)
-    cv2.imwrite('img.png', img, [cv2.IMWRITE_PNG_STRATEGY_DEFAULT, 1])
+

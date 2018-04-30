@@ -11,7 +11,6 @@ from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
-from sawyer_control.srv import image
 from rllab.envs.base import Env
 import time
 class SawyerEnv(Env, Serializable):
@@ -220,13 +219,6 @@ class SawyerEnv(Env, Serializable):
         ))
         return temp
 
-    def _get_image(self):
-        temp = self.request_image()
-        img = np.array(temp)
-        image = img.reshape(84, 84, 3)
-        #add image flipping across horizontal
-        return image
-
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):
             cur_pos, cur_vel, _, _ = self.request_observation()
@@ -434,17 +426,6 @@ class SawyerEnv(Env, Serializable):
             resp = execute_action(angles)
             return (
                     None
-            )
-        except rospy.ServiceException as e:
-            print(e)
-
-    def request_image(self):
-        rospy.wait_for_service('images')
-        try:
-            request = rospy.ServiceProxy('images', image, persistent=True)
-            obs = request()
-            return (
-                    obs.image
             )
         except rospy.ServiceException as e:
             print(e)
