@@ -52,8 +52,6 @@ catkin_python_setup()
    FILES
    observations.msg
    actions.msg
-  
-  
  )
 
 ## Generate services in the 'srv' folder

@@ -71,8 +71,19 @@ class KinectRecorder(object):
         self.highres_imglist = []
 
         __name__ = '__main__'
-        self.instance_type = 'main'
-        print 'init recorder with instance type', self.instance_type
+        if True:
+            # the main instance one also records actions and joint angles
+            self.instance_type = 'main'
+            # self._gripper = None
+            # self.gripper_name = '_'.join([side, 'gripper'])
+            import intera_interface
+            rospy.init_node('main')
+            self._limb_right = intera_interface.Limb(side)
+        else:
+            # auxiliary recorder
+            rospy.init_node('aux_recorder1')
+            rospy.loginfo("init node aux_recorder1")
+            self.instance_type = 'aux1'
 
         prefix = self.instance_type
 
@@ -184,7 +195,6 @@ class KinectRecorder(object):
         endcol = startcol + 1500
         endrow = startrow + 1500
         cv_image = copy.deepcopy(cv_image[startrow:endrow, startcol:endcol])
-
         cv_image = cv2.resize(cv_image, (0, 0), fx=0.056, fy=0.07777777777, interpolation=cv2.INTER_AREA)
         if self.instance_type == 'main':
             cv_image = imutils.rotate_bound(cv_image, 180)
@@ -353,20 +363,15 @@ class KinectRecorder(object):
 
 def get_observation(unused):
     img = kr.ltob.img_cv2
-    #img = img.reshape(21168, 1, 1)
-    img = img.flatten()
-    img = img.tolist()
-    return imageResponse(img)
+    img = np.array(img)
+    image = img.flatten().tolist()
+    return imageResponse(image)
 
 def image_server():
-
-    # rospy.init_node('image_server', anonymous=True)
-
     s = rospy.Service('images', image, get_observation)
     rospy.spin()
 
 if __name__ == "__main__":
-    rospy.init_node('hello')
     kr = KinectRecorder('~/Documents')
     image_server()
 

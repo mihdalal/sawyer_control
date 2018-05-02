@@ -58,6 +58,7 @@ END_EFFECTOR_VALUE_HIGH = {
     'angle': END_EFFECTOR_ANGLE_HIGH,
 }
 
+
 class SawyerJointSpaceReachingEnv(SawyerEnv):
     def __init__(self,
                  desired = None,
@@ -183,13 +184,13 @@ class SawyerXYZReachingEnv(SawyerEnv):
 
         self._observation_space = Box(lows, highs)
 
-    def _randomize_desired_end_effector_pose(self):
-        #self.desired = np.random.uniform(self.safety_box_lows, self.safety_box_highs, size=(1, 3))[0]
-        dx = np.random.uniform(-0.1032, 0.1065)
-        dy = np.random.uniform(-0.158, 0.13)
-        dz = np.random.uniform(-0.32, 0.25)
-        self.desired = np.array([0.631495, 0.17804676, 0.5571655 ]) + np.array([dx, dy, dz])
+    def _get_random_ee_pose(self, batch_size=1):
+        reaching_box_lows = self.not_reset_safety_box_lows + np.ones(3) * .2
+        reaching_box_highs = self.not_reset_safety_box_highs - np.ones(3) * .2
+        return np.random.uniform(reaching_box_lows, reaching_box_highs, size=(batch_size, 3))
 
+    def _randomize_desired_end_effector_pose(self):
+        self.desired = self._get_random_ee_pose()[0]
 
     def reset(self):
         self.in_reset = True
@@ -202,11 +203,17 @@ class SawyerXYZReachingEnv(SawyerEnv):
     def _get_statistics_from_paths(self, paths):
         statistics = OrderedDict()
         stat_prefix = 'Test'
-        distances_from_target, final_position_distances = self._extract_experiment_info(paths)
+        distances_from_target, final_position_distances, final_10_positions_distances = self._extract_experiment_info(paths)
         statistics.update(self._update_statistics_with_observation(
             distances_from_target,
             stat_prefix,
             'End Effector Distance from Target'
+        ))
+
+        statistics.update(self._update_statistics_with_observation(
+            final_10_positions_distances,
+            stat_prefix,
+            'Last 10 Step End Effector Distance from Target'
         ))
 
         statistics.update(self._update_statistics_with_observation(
@@ -224,6 +231,8 @@ class SawyerXYZReachingEnv(SawyerEnv):
         distances = []
         final_positions = []
         final_desired_positions = []
+        final_10_positions = []
+        final_10_desired_positions = []
         for obsSet in obsSets:
             for observation in obsSet:
                 pos = np.array(observation[21:24])
@@ -231,11 +240,16 @@ class SawyerXYZReachingEnv(SawyerEnv):
                 distances.append(np.linalg.norm(pos - des))
                 positions.append(pos)
                 desired_positions.append(des)
+            final_10_positions = positions[len(positions)-10:]
+            final_10_desired_positions = desired_positions[len(desired_positions)-10:]
             final_positions.append(positions[-1])
             final_desired_positions.append(desired_positions[-1])
 
         distances = np.array(distances)
         final_positions = np.array(final_positions)
         final_desired_positions = np.array(final_desired_positions)
+        final_10_positions = np.array(final_10_positions)
+        final_10_desired_positions = np.array(final_10_desired_positions)
         final_position_distances = np.linalg.norm(final_positions - final_desired_positions, axis=1)
-        return [distances, final_position_distances]
+        final_10_positions_distances = np.linalg.norm(final_10_positions - final_10_desired_positions, axis=1)
+        return [distances, final_position_distances, final_10_positions_distances]

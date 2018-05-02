@@ -5,7 +5,6 @@ from sawyer_control.srv import angle_action
 from sawyer_control.srv import *
 
 def execute_action(action_msg):
-
     action = action_msg.angles
     arm.set_joint_position_speed(0.1)
     joint_names = arm.joint_names()
@@ -24,3 +23,4 @@ def angle_action_server():
 
 if __name__ == '__main__':
     angle_action_server()
+

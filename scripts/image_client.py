@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import rospy
 from sawyer_control.srv import image
+import cv2
+import numpy as np
 
 def request_observation():
     rospy.init_node('ba')
@@ -16,4 +18,6 @@ def request_observation():
         print(e)
 
 if __name__ == "__main__":
-    print(request_observation())
+    img = request_observation()
+    img = np.array(img)
+    img = img.reshape(84, 84, 3)
