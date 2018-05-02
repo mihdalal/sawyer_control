@@ -126,8 +126,6 @@ class SawyerEnv(Env, Serializable):
         return cond
 
     def _torque_act(self, action):
-        if not self.in_reset:
-            self.actions.append(action)
         if self.safety_box:
             if self.in_reset:
                 self.safety_box_highs = self.reset_safety_box_highs
