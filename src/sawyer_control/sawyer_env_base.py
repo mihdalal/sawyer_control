@@ -40,7 +40,7 @@ class SawyerEnv(Env, Serializable):
         self.safety_box_highs = self.not_reset_safety_box_highs = [0.7,  0.5,  0.7]
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-        if action_mode=='position':
+        if action_mode == 'position':
             self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
             self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
         else:
@@ -113,10 +113,10 @@ class SawyerEnv(Env, Serializable):
             if self._endpoint_within_threshold(ee_pos, target_ee_pos):
                 break
 
-    # def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
-    #     self.get_latest_pose_jacobian_dict()
-    #     ee_jac = self.pose_jacobian_dict['right_l6'][1]
-    #     return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.ee_pd_scale
+    def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
+        self.get_latest_pose_jacobian_dict()
+        ee_jac = self.pose_jacobian_dict['right_l6'][1]
+        return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.ee_pd_scale
 
     def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
         maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
