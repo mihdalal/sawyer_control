@@ -37,7 +37,12 @@ class SawyerEnv(Env, Serializable):
         self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
         self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
-        self.safety_box_highs = self.not_reset_safety_box_highs = [0.7,  0.5,  0.7]
+        self.safety_box_highs = self.not_reset_safety_box_highs = [0.7, 0.5, 0.7]
+
+        #image box
+        self.safety_box_lows = self.not_reset_safety_box_lows = [.2, -.382, .08]
+        self.safety_box_highs = self.not_reset_safety_box_highs = [.556, .5, .429]
+
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
         if action_mode == 'position':
@@ -203,7 +208,7 @@ class SawyerEnv(Env, Serializable):
         observation = self._get_observation()
         reward = self.reward() * self.reward_magnitude
         done = False
-        info = {}
+        info = dict(true_state=observation)
         if self.img_observation:
             observation = self._get_image()
         return observation, reward, done, info

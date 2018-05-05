@@ -1,12 +1,49 @@
 from collections import deque
 import torch
-from railrl.envs.wrappers import ProxyEnv
 from rllab.envs.base import Env
 from PIL import Image
 from rllab.spaces.box import Box
 import numpy as np
 import rospy
 from sawyer_control.srv import image
+
+# from sawyer_control.serializable import Serializable
+from railrl.envs.wrappers import ProxyEnv
+
+# class ProxyEnv(Serializable, Env):
+#     def __init__(self, wrapped_env):
+#         Serializable.quick_init(self, locals())
+#         self._wrapped_env = wrapped_env
+#         import ipdb; ipdb.set_trace()
+#         self.action_space = self._wrapped_env.action_space
+#         self.observation_space = self._wrapped_env.observation_space
+#
+#     @property
+#     def wrapped_env(self):
+#         return self._wrapped_env
+#
+#     def reset(self, **kwargs):
+#         return self._wrapped_env.reset(**kwargs)
+#
+#     def step(self, action):
+#         return self._wrapped_env.step(action)
+#
+#     def log_diagnostics(self, paths, logger=None, *args, **kwargs):
+#         if hasattr(self._wrapped_env, 'log_diagnostics'):
+#             self._wrapped_env.log_diagnostics(paths, *args, logger=logger, **kwargs)
+#
+#     @property
+#     def horizon(self):
+#         return self._wrapped_env.horizon
+#
+#     def terminate(self):
+#         if hasattr(self.wrapped_env, "terminate"):
+#             self.wrapped_env.terminate()
+#
+#     def __getattr__(self, attrname):
+#         if attrname == '_serializable_initialized':
+#             return None
+#         return getattr(self._wrapped_env, attrname)
 
 class ImageSawyerEnv(ProxyEnv, Env):
     def __init__(self, wrapped_env, imsize=84, history_length=1, keep_prev=0, **kwargs):
@@ -15,7 +52,7 @@ class ImageSawyerEnv(ProxyEnv, Env):
         self.imsize = imsize
         self.image_length = 3 * self.imsize * self.imsize
         # This is torch format rather than PIL image
-        self.image_shape = (self.imsize, self.imsize)
+        self.image_shape = (3, self.imsize, self.imsize)
         # Flattened past image queue
         self.history_length = keep_prev + 1
         self.history = deque(maxlen=self.history_length)
@@ -54,7 +91,7 @@ class ImageSawyerEnv(ProxyEnv, Env):
             dummy = np.zeros(self.image_shape)
             observations.append(dummy)
         #try np.concatenate(observations, axis=0)
-        return np.c_[observations]
+        return np.concatenate(observations)
 
     def retrieve_images(self):
         # returns images in unflattened PIL format
@@ -71,6 +108,7 @@ class ImageSawyerEnv(ProxyEnv, Env):
         temp = self.request_image()
         img = np.array(temp)
         image = img.reshape(84, 84, 3)
+        image = image.transpose((2, 1, 0))
         return image
 
     def request_image(self):

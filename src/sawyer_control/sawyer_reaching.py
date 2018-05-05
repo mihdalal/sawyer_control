@@ -92,12 +92,13 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         return statistics
 
     def _extract_experiment_info(self, paths):
-        obsSets = [path["next_observations"] for path in paths]
+        obsSets = [path["env_info"] for path in paths]
         angles = []
         desired_angles = []
         positions = []
         for obsSet in obsSets:
             for observation in obsSet:
+                observation = observation['true_state']
                 angles.append(observation[:7])
                 desired_angles.append(observation[24:31])
                 positions.append(observation[21:24])
@@ -229,7 +230,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         return statistics
 
     def _extract_experiment_info(self, paths):
-        obsSets = [path["next_observations"] for path in paths]
+        obsSets = [path["env_infos"] for path in paths]
         positions = []
         desired_positions = []
         distances = []
@@ -239,6 +240,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_10_desired_positions = []
         for obsSet in obsSets:
             for observation in obsSet:
+                observation = observation["true_state"]
                 pos = np.array(observation[21:24])
                 des = np.array(observation[28:31])
                 distances.append(np.linalg.norm(pos - des))
