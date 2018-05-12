@@ -32,14 +32,13 @@ class SawyerEnv(Env, Serializable):
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
-        
         self.safety_box_lows = np.array([0., -0.7649703, 0])
         self.safety_box_highs = np.array([1, 0.65, 1])
 
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-        self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
-        self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
+        self.ee_safety_box_high = np.array([0.73, 0.32, 0.55])
+        self.ee_safety_box_low = np.array([0.52, -0.32, 0.22])
 
         self.action_mode = action_mode
         self.reward_magnitude = reward_magnitude
@@ -70,6 +69,7 @@ class SawyerEnv(Env, Serializable):
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
         self.amplify = np.ones(7) * self.joint_torque_high
+        self.thresh = True
 
 #[ 0.40903145 -0.0270384   0.27283809]
 #[0.53012633 0.0026125  0.11447845]
@@ -81,11 +81,9 @@ class SawyerEnv(Env, Serializable):
     def _act(self, action):
         # import ipdb; ipdb.set_trace()
         if self.action_mode == 'position':
-            
             #action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
-            action /= 10.
-
-            self._joint_act(action)
+            action_scaled = action.copy()/25.0
+            self._joint_act(action_scaled)
         else:
             return self._torque_act(action)
 
@@ -196,7 +194,7 @@ class SawyerEnv(Env, Serializable):
         done = False
         info = {}
         if self.img_observation:
-            observation = self._get_image()
+            observation = self.get_image()
         return observation, reward, done, info
 
     def reward(self):
@@ -218,12 +216,16 @@ class SawyerEnv(Env, Serializable):
         ))
         return temp
 
-    def _get_image(self):
+    def get_image(self):
         temp = self.request_image()
         #update the get image in server. get an 84 x 84 x 3
         #reshape to 84 x 84 x 3
-
-        return temp
+        temp = np.array(temp)
+        temp = temp.reshape(84, 84, 3)
+        observation = temp / 255.0
+        observation = observation.transpose()
+        observation = observation.flatten()
+        return observation
 
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):
@@ -414,7 +416,7 @@ class SawyerEnv(Env, Serializable):
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            resp = execute_action(angles)
+            resp = execute_action(angles, self.thresh)
             return (
                     None
             )
