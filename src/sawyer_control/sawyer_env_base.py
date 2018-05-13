@@ -11,7 +11,6 @@ from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from rllab.envs.base import Env
-import time
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -33,19 +32,17 @@ class SawyerEnv(Env, Serializable):
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
-        self.latest_t = 0
         self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
         self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
         self.safety_box_highs = self.not_reset_safety_box_highs = [0.7,  0.5,  0.7]
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-        if action_mode=='position':
-            self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
-            self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
-        else:
-            self.ee_safety_box_high = np.array([0.7, 0.2, 0.35])
-            self.ee_safety_box_low = np.array([0.38, -0.2, 0.0])
+
+        #for position controller only
+        self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
+        self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
+
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
         self.reward_magnitude = reward_magnitude
@@ -76,12 +73,15 @@ class SawyerEnv(Env, Serializable):
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
         self.amplify = np.ones(7)*self.joint_torque_high
+        self.thresh = True
+
+
 
     def _act(self, action):
         if self.action_mode == 'position':
-            if self.relative_pos_control:
-                action /= 10.
-            self._joint_act(action)
+            #action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
+            action_scaled = action.copy()/25.0
+            self._joint_act(action_scaled)
         else:
             self._torque_act(action)
         return
@@ -153,9 +153,6 @@ class SawyerEnv(Env, Serializable):
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
         self.send_action(action)
         self.rate.sleep()
-        curr = time.time()
-        # print(curr-self.prev)
-        self.prev = curr
 
     def _reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
@@ -207,7 +204,7 @@ class SawyerEnv(Env, Serializable):
         done = False
         info = {}
         if self.img_observation:
-            observation = self._get_image()
+            observation = self.get_image()
         return observation, reward, done, info
 
     def reward(self):
@@ -228,6 +225,18 @@ class SawyerEnv(Env, Serializable):
             self.desired
         ))
         return temp
+
+
+    def get_image(self):
+        temp = self.request_image()
+        #update the get image in server. get an 84 x 84 x 3
+        #reshape to 84 x 84 x 3
+        temp = np.array(temp)
+        temp = temp.reshape(84, 84, 3)
+        observation = temp / 255.0
+        observation = observation.transpose()
+        observation = observation.flatten()
+        return observation
 
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):
@@ -419,7 +428,7 @@ class SawyerEnv(Env, Serializable):
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            resp = execute_action(angles)
+            resp = execute_action(angles, self.thresh)
             return (
                     None
             )

@@ -1,2 +1,3 @@
 *.pyc
 .idea/*
+src/sawyer_control/images_data_reset_100/
