@@ -34,14 +34,14 @@ class SawyerEnv(Env, Serializable):
         self.init_rospy(update_hz)
         self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
-        self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
-        self.safety_box_highs = self.not_reset_safety_box_highs = [0.7,  0.5,  0.7]
+        self.safety_box_lows = self.not_reset_safety_box_lows = [0.2, -0.2, .03]
+        self.safety_box_highs = self.not_reset_safety_box_highs = [0.6,  0.2,  0.5]
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
 
         #for position controller only
-        self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
-        self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
+        self.ee_safety_box_high = np.array([0.6, 0.2, 0.5])
+        self.ee_safety_box_low = np.array([0.2, -.2, 0.03])
 
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
