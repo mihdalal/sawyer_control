@@ -39,18 +39,23 @@ class SawyerEnv(Env, Serializable):
         self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
         self.safety_box_highs = self.not_reset_safety_box_highs = [0.7, 0.5, 0.7]
 
-        #image box
-        self.safety_box_lows = self.not_reset_safety_box_lows = [.2, -.382, .08]
-        self.safety_box_highs = self.not_reset_safety_box_highs = [.556, .5, .429]
-
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
         if action_mode == 'position':
-            self.ee_safety_box_high = np.array([0.73, 0.32, 0.86])
-            self.ee_safety_box_low = np.array([0.52, 0.03, 0.22])
-        else:
-            self.ee_safety_box_high = np.array([0.7, 0.2, 0.35])
-            self.ee_safety_box_low = np.array([0.38, -0.2, 0.0])
+            # self.ee_safety_box_low = np.array([0.23, -.302, 0.03])
+            # self.ee_safety_box_high = np.array([0.60, .47, 0.409])
+            self.ee_safety_box_low = np.array([.2, -.2, .03])
+            self.ee_safety_box_high = np.array([.6, .2, .5])
+            # original ee safety box
+            #self.ee_safety_box_high = np.array([0.73, 0.32, 0.4])
+            #self.ee_safety_box_low = np.array([0.52, 0.03, 0.05])
+
+        # image box
+        # self.safety_box_lows = self.not_reset_safety_box_lows = [.2, -.332, .00]
+        # self.safety_box_highs = self.not_reset_safety_box_highs = [.63, .5, .429]
+        # self.safety_box_lows = self.not_reset_safety_box_lows = [.2, -.2, .00]
+        # self.safety_box_highs = self.not_reset_safety_box_highs = [.6, .2, .5]
+
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
         self.reward_magnitude = reward_magnitude
@@ -84,8 +89,9 @@ class SawyerEnv(Env, Serializable):
 
     def _act(self, action):
         if self.action_mode == 'position':
-            if self.relative_pos_control:
-                action /= 10.
+            #if self.relative_pos_control:
+                # action /= 10.
+            # print(action, self.relative_pos_control)
             self._joint_act(action)
         else:
             self._torque_act(action)
@@ -204,6 +210,7 @@ class SawyerEnv(Env, Serializable):
         return differences
 
     def step(self, action):
+        print('calling step')
         self._act(action)
         observation = self._get_observation()
         reward = self.reward() * self.reward_magnitude

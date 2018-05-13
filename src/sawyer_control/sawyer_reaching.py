@@ -198,6 +198,7 @@ class SawyerXYZReachingEnv(SawyerEnv):
         self.desired = self._get_random_ee_pose()[0]
 
     def reset(self):
+        # print('DESIRED', self.desired, 'ACTUAL', self._end_effector_pose()[0:3])
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False

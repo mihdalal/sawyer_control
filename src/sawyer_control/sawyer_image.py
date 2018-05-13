@@ -108,8 +108,10 @@ class ImageSawyerEnv(ProxyEnv, Env):
         temp = self.request_image()
         img = np.array(temp)
         image = img.reshape(84, 84, 3)
-        image = image.transpose((2, 1, 0))
+        # image = image.transpose((2, 1, 0))
+        # return image / 255.0
         return image
+
 
     def request_image(self):
         rospy.wait_for_service('images')
