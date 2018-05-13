@@ -10,6 +10,7 @@ from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
+from sawyer_control.srv import image
 from rllab.envs.base import Env
 class SawyerEnv(Env, Serializable):
     def __init__(
@@ -40,8 +41,8 @@ class SawyerEnv(Env, Serializable):
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
 
         #for position controller only
-        self.ee_safety_box_high = np.array([0.6, 0.2, 0.5])
-        self.ee_safety_box_low = np.array([0.2, -.2, 0.03])
+        self.ee_safety_box_high = np.array([0.75, 0.32, 0.5])
+        self.ee_safety_box_low = np.array([0.53, -.32, 0.35])
 
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
@@ -79,8 +80,8 @@ class SawyerEnv(Env, Serializable):
 
     def _act(self, action):
         if self.action_mode == 'position':
-            #action = np.clip(action, -self.ee_pd_action_limit, self.ee_pd_action_limit)
             action_scaled = action.copy()/25.0
+            print(action_scaled)
             self._joint_act(action_scaled)
         else:
             self._torque_act(action)
@@ -126,8 +127,6 @@ class SawyerEnv(Env, Serializable):
         return cond
 
     def _torque_act(self, action):
-        if not self.in_reset:
-            self.actions.append(action)
         if self.safety_box:
             if self.in_reset:
                 self.safety_box_highs = self.reset_safety_box_highs
@@ -400,14 +399,12 @@ class SawyerEnv(Env, Serializable):
     def init_rospy(self, update_hz):
         rospy.init_node('sawyer_env', anonymous=True)
         self.action_publisher = rospy.Publisher('actions_publisher', actions, queue_size=10)
-        #self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
         self.rate = rospy.Rate(update_hz)
 
     def send_action(self, action):
         self.action_publisher.publish(action)
 
     def send_angle_action(self, action):
-        #self.angle_action_publisher.publish(action)
         self.request_angle_action(action)
 
     def request_observation(self):
@@ -448,18 +445,16 @@ class SawyerEnv(Env, Serializable):
         except rospy.ServiceException as e:
             print(e)
 
-
-    def request_angle_action(self, angles):
-        rospy.wait_for_service('angle_action')
+    def request_image(self):
+        rospy.wait_for_service('images')
         try:
-            execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            resp = execute_action(angles)
+            request = rospy.ServiceProxy('images', image, persistent=True)
+            obs = request()
             return (
-                    None
+                    obs.image
             )
         except rospy.ServiceException as e:
             print(e)
-
     @property
     def horizon(self):
         raise NotImplementedError
