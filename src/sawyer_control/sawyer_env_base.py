@@ -210,7 +210,7 @@ class SawyerEnv(Env, Serializable):
         return differences
 
     def step(self, action):
-        print('calling step')
+        #print('calling step')
         self._act(action)
         observation = self._get_observation()
         reward = self.reward() * self.reward_magnitude
