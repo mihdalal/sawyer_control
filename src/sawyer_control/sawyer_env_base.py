@@ -81,7 +81,6 @@ class SawyerEnv(Env, Serializable):
     def _act(self, action):
         if self.action_mode == 'position':
             action_scaled = action.copy()/25.0
-            print(action_scaled)
             self._joint_act(action_scaled)
         else:
             self._torque_act(action)

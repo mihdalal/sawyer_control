@@ -572,9 +572,6 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
     def goal_dim(self):
         return 3
 
-    def convert_obs_to_goals(self, obs):
-        return obs[:, 21:24]
-
     def sample_goals(self, batch_size):
         return np.vstack([self.goal_space.sample() for i in range(batch_size)])
 
@@ -595,26 +592,10 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
     def _set_observation_space(self):
         self._observation_space = Box(np.zeros((21168,)), 1.0*np.ones(21168,))
 
-    def _randomize_desired_end_effector_pose(self):
-        #self.desired = np.random.uniform(self.safety_box_lows, self.safety_box_highs, size=(1, 3))[0]
-        assert False # Don't randomize goal inside reset! In MultitaskEnv this is done by set_goal
-        high = self.ee_safety_box_high
-        low = self.ee_safety_box_low
-        dx = np.random.uniform(low[0], high[0])
-        dy = np.random.uniform(low[1], high[1])
-        dz = np.random.uniform(low[2], high[2])
-        self.desired =  np.array([dx, dy, dz])
-
-    def compute_her_reward_np(self, observation, action, next_observation, goal):
-        return -np.linalg.norm(next_observation[21:24] - goal)
-
     def reset(self):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
-        # Don't randomize goal inside reset! In MultitaskEnv this is done by set_goal
-        # if self._randomize_goal_on_reset:
-            # self._randomize_desired_end_effector_pose()
         if self.img_observation:
             observation = self.get_image()
         else:
@@ -635,8 +616,6 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
             endpoint_pose,
         ))
         return temp
-
-
 
     def step(self, action):
         self._act(action)
@@ -663,6 +642,172 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
             final_position_distances += [[p['distance_to_goal'] for p in path['env_infos']][-1]]
         #final_position_distances = np.array([path['distance_to_goal'][-1] for path in paths]).flatten()
         # distances_from_target, final_position_distances = self._extract_experiment_info(paths)
+        final_position_distances = np.array(final_position_distances)
+        distances_from_target = np.array(distances_from_target)
+        statistics.update(self._update_statistics_with_observation(
+            distances_from_target,
+            stat_prefix,
+            'End Effector Distance from Target'
+        ))
+
+        statistics.update(self._update_statistics_with_observation(
+            final_position_distances,
+            stat_prefix,
+            'Final End Effector Distance from Target'
+        ))
+
+        return statistics
+
+class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
+
+    def __init__(self,
+                 desired = None,
+                 randomize_goal_on_reset=False,
+                 reprsentation_size = 16,
+                 z=0.3,
+                 **kwargs
+                 ):
+        Serializable.quick_init(self, locals())
+        SawyerEnv.__init__(self, **kwargs)
+        MultitaskEnv.__init__(self, **kwargs)
+        self.desired = np.zeros((4))
+        self.action_mode = 'position'
+        self.reset_position = [.1, .2, self.z]
+        #set pushing safety box here
+        #goals are push the object to a spot, then reach a different position
+        high = self.pushing_box_high #make sure to concatenate with itself
+        low = self.pushing_box_low
+        # high = self.ee_safety_box_high
+        # low = self.ee_safety_box_low
+        self.goal_space = Box(low, high)
+        self.img_observation = True
+
+    @property
+    def goal_dim(self):
+        return 4 #xy for object position, xy for end effector position
+
+    def sample_goals(self, batch_size):
+        return np.vstack([self.goal_space.sample() for i in range(batch_size)])
+
+    def set_goal(self, goal,eval=False):
+        obj_goal = np.concatenate((goal[:2], [self.z]))
+        ee_goal = np.concatenate((goal[2:4], [self.z]))
+        MultitaskEnv.set_goal(self, goal)
+        if eval:
+            #PAUSE FOR INPUT:
+            input()
+            self.thresh=False
+            self._joint_act(obj_goal-self.end_effector_pose()[:3])
+            self.thresh=True
+            input()
+            #PAUSE FOR INPUT
+            #PLACE OBJECT AT GOAL POSITION
+            #MOVES ROBOT ARM TO GOAL POSITION:
+            self.thresh = False
+            self._joint_act(ee_goal - self._end_effector_pose()[:3])
+            self.desired = goal
+            self.thresh = True
+        # For VAE: actually need to move the arm to this position
+
+
+    def reward(self):
+        '''
+        this is isnt used by the multitask env at all
+        :return:
+        '''
+        current = self._end_effector_pose()[:3]
+        differences = self.desired - current
+        reward = self.reward_function(differences)
+        return reward
+
+    def _set_observation_space(self):
+        self._observation_space = Box(np.zeros((21168,)), 1.0*np.ones(21168,))
+
+    def _randomize_desired_end_effector_pose(self):
+        #self.desired = np.random.uniform(self.safety_box_lows, self.safety_box_highs, size=(1, 3))[0]
+        assert False # Don't randomize goal inside reset! In MultitaskEnv this is done by set_goal
+        high = self.ee_safety_box_high
+        low = self.ee_safety_box_low
+        dx = np.random.uniform(low[0], high[0])
+        dy = np.random.uniform(low[1], high[1])
+        dz = np.random.uniform(low[2], high[2])
+        self.desired =  np.array([dx, dy, dz])
+
+    def compute_her_reward_np(self, observation, action, next_observation, goal):
+        '''
+        this shouldn't be used either
+        :param observation:
+        :param action:
+        :param next_observation:
+        :param goal:
+        :return:
+        '''
+        return -np.linalg.norm(next_observation[21:24] - goal)
+
+    def reset(self, vae_reset=False):
+        if vae_reset:
+            input()
+            #PAUSE AND MOVE OBJECT TO ITS RESET POSITION
+        self.in_reset = True
+        # self._safe_move_to_neutral()
+        self._joint_act(self.z - self._end_effector_pose[:3])
+        self.in_reset = False
+        if self.img_observation:
+            observation = self.get_image()
+        else:
+            observation = self._get_observation()
+        return observation
+
+    def _joint_act(self, action):
+        ee_pos = self._end_effector_pose()
+        if self.relative_pos_control:
+            target_ee_pos = (ee_pos[:3] + action)
+        else:
+            target_ee_pos = action
+        target_ee_pos[2] = self.z
+        target_ee_pos[:2] = np.clip(target_ee_pos[:2], self.pushing_box_low, self.pushing_box_high)
+        target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
+        angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
+        self.send_angle_action(angles)
+
+    def _get_observation(self):
+        angles = self._joint_angles()
+        _, velocities, torques, _ = self.request_observation()
+        velocities = np.array(velocities)
+        torques = np.array(torques)
+        endpoint_pose = self._end_effector_pose()
+
+        temp = np.hstack((
+            angles,
+            velocities,
+            torques,
+            endpoint_pose,
+        ))
+        return temp
+
+    def step(self, action):
+        self._act(action)
+        observation = self._get_observation()
+        reward = self.reward() * self.reward_magnitude
+        done = False
+        info = {}
+        info['cartesian_goal'] = self.desired.copy()
+        pos = np.array(observation[21:24])
+        info['distance_to_goal'] = np.linalg.norm(pos - self.desired)
+        if self.img_observation:
+            observation = self.get_image()
+        return observation, reward, done, info
+
+
+    def _get_statistics_from_paths(self, paths):
+        statistics = OrderedDict()
+        stat_prefix = 'Test'
+        #distances_from_target = np.array([path['distance_to_goal'] for path in paths]).flatten()
+        distances_from_target = []
+        final_position_distances = []
+        for path in paths:
+            distances_from_target += [p['distance_to_goal'] for p in path['env_infos']]
+            final_position_distances += [[p['distance_to_goal'] for p in path['env_infos']][-1]]
         final_position_distances = np.array(final_position_distances)
         distances_from_target = np.array(distances_from_target)
         statistics.update(self._update_statistics_with_observation(
