@@ -33,16 +33,12 @@ class SawyerEnv(Env, Serializable):
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
+        #default, do not change
         self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
-        self.safety_box_lows = self.not_reset_safety_box_lows = [0.2, -0.2, .03]
-        self.safety_box_highs = self.not_reset_safety_box_highs = [0.6,  0.2,  0.5]
+        self.set_safety_box()
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
         self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-
-        #for position controller only
-        self.ee_safety_box_high = np.array([0.75, 0.32, 0.5])
-        self.ee_safety_box_low = np.array([0.53, -.32, 0.35])
 
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
@@ -76,7 +72,16 @@ class SawyerEnv(Env, Serializable):
         self.amplify = np.ones(7)*self.joint_torque_high
         self.thresh = True
 
-
+    def set_safety_box(self,
+                       pos_low = np.array([0.53, -.32, 0.35]),
+                       pos_high = np.array([0.75, 0.32, 0.5]),
+                       torq_low = np.array([0.2, -0.2, .03]),
+                       torq_high = np.array([0.6, 0.2, 0.5]),
+                    ):
+        self.ee_safety_box_high = pos_high
+        self.ee_safety_box_low = pos_low
+        self.safety_box_lows = self.not_reset_safety_box_lows = torq_low
+        self.safety_box_highs = self.not_reset_safety_box_highs = torq_high
 
     def _act(self, action):
         if self.action_mode == 'position':

@@ -188,6 +188,7 @@ class KinectRecorder(object):
         # img = img.reshape(64, 64, 3)
         # img = Image.fromarray(img)
         # img.save('hello.png')
+
     def crop_highres(self, cv_image):
         startcol = 180
         startrow = 0

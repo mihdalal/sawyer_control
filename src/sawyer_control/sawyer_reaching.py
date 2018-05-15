@@ -152,6 +152,12 @@ class SawyerXYZReachingEnv(SawyerEnv):
                  ):
         Serializable.quick_init(self, locals())
         super().__init__(**kwargs)
+        self.set_safety_box(
+            pos_low=np.array([0.3, -.32, 0.35]),
+            pos_high=np.array([0.55, 0.32, 0.5]),
+            torq_low=np.array([.3, -.18, .17]),
+            torq_high=np.array([.55, .3, .55]),
+        )
         if desired is None:
             self._randomize_desired_end_effector_pose()
         else:
@@ -563,6 +569,13 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         SawyerEnv.__init__(self, **kwargs)
         MultitaskEnv.__init__(self, **kwargs)
         self.desired = np.zeros((3))
+        #vae safety box:
+        self.set_safety_box(
+            pos_low=np.array([0.3, -.32, 0.35]),
+            pos_high=np.array([0.55, 0.32, 0.5]),
+            torq_low=np.array([.3, -.18, .17]),
+            torq_high=np.array([.55, .3, .55]),
+        )
         high = self.ee_safety_box_high
         low = self.ee_safety_box_low
         self.goal_space = Box(low, high)
