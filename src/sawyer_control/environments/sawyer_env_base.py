@@ -16,6 +16,7 @@ import gym
 import time
 #TODO: FIX IMPORTS
 from sawyer_control.core.multitask_env import MultitaskEnv
+from sawyer_control.configs import *
 
 
 class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
@@ -32,7 +33,8 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             ee_pd_scale = 25,
             ee_pd_damping_scale=20,
             ee_pd_action_limit=1,
-            img_observation = False
+            img_observation = False,
+            config = base_config,
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
@@ -375,7 +377,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         try:
             request = rospy.ServiceProxy('observations', observation, persistent=True)
             obs = request()
-            #TODO: FIX THIS TO RETURN NP ARRAYS ONLY 
+            #TODO: FIX THIS TO RETURN NP ARRAYS ONLY
             return (
                     obs.angles,
                     obs.velocities,

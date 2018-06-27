@@ -3,14 +3,14 @@ from std_msgs.msg import Empty
 
 import numpy as np
 
-from sawyer_control import config
+from sawyer_control.configs import *
 
 
 class AnglePDController(object):
     """
     PD Controller for Moving to Neutral
     """
-    def __init__(self):
+    def __init__(self, config = base_config):
         # control parameters
         self._rate = 1000  # Hz
         self._missed_cmds = 20.0  # Missed cycles before triggering timeout
