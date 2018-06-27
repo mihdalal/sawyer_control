@@ -5,6 +5,7 @@ from sawyer_control.eval_util import create_stats_ordered_dict
 from sawyer_control.serializable import Serializable
 from collections import OrderedDict
 from rllab.spaces.box import Box
+from gym.spaces import Box #TODO: INTEGRATE THIS IN TO WORK 
 from sawyer_control.srv import observation
 from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
@@ -89,9 +90,8 @@ class SawyerEnv(Env, Serializable):
 
     def _act(self, action):
         if self.action_mode == 'position':
-            #if self.relative_pos_control:
-                # action /= 10.
-            # print(action, self.relative_pos_control)
+            if self.relative_pos_control:
+                action /= 10.
             self._joint_act(action)
         else:
             self._torque_act(action)
@@ -163,7 +163,6 @@ class SawyerEnv(Env, Serializable):
         self.send_action(action)
         self.rate.sleep()
         curr = time.time()
-        # print(curr-self.prev)
         self.prev = curr
 
     def _reset_angles_within_threshold(self):
@@ -210,7 +209,6 @@ class SawyerEnv(Env, Serializable):
         return differences
 
     def step(self, action):
-        #print('calling step')
         self._act(action)
         observation = self._get_observation()
         reward = self.reward() * self.reward_magnitude
@@ -401,14 +399,12 @@ class SawyerEnv(Env, Serializable):
     def init_rospy(self, update_hz):
         rospy.init_node('sawyer_env', anonymous=True)
         self.action_publisher = rospy.Publisher('actions_publisher', actions, queue_size=10)
-        #self.angle_action_publisher = rospy.Publisher('angle_action_publisher', angle_action, queue_size=10)
         self.rate = rospy.Rate(update_hz)
 
     def send_action(self, action):
         self.action_publisher.publish(action)
 
     def send_angle_action(self, action):
-        #self.angle_action_publisher.publish(action)
         self.request_angle_action(action)
 
     def request_observation(self):
@@ -432,7 +428,7 @@ class SawyerEnv(Env, Serializable):
             resp = execute_action(angles)
             return (
                     None
-            )
+            ) #TODO: why does this return (None)
         except rospy.ServiceException as e:
             print(e)
 
@@ -457,7 +453,7 @@ class SawyerEnv(Env, Serializable):
             resp = execute_action(angles)
             return (
                     None
-            )
+            ) #TODO: why does this return (None)
         except rospy.ServiceException as e:
             print(e)
 

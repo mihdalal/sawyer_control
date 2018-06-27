@@ -28,12 +28,6 @@ class AnglePDController(object):
                             'right_j1': -0.9783408203125,
                             'right_j0': 0.0304824218}
 
-
-        # self._des_angles = {'right_j6': 2.2220947265625,
-        #                     'right_j5': 0.839109375, 'right_j4': 1.2293330078125,
-        #                     'right_j3': 1.9141982421875, 'right_j2': -0.8239287109375,
-        #                     'right_j1': -0.3724609375, 'right_j0': 0.388703125}
-
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
