@@ -1,5 +1,6 @@
 import numpy as np
 import rospy
+import time
 from sawyer_control.joint_angle_pd_controller import AnglePDController
 from sawyer_control.eval_util import create_stats_ordered_dict
 from sawyer_control.serializable import Serializable
@@ -12,6 +13,7 @@ from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from rllab.envs.base import Env
+import cv2
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
@@ -38,7 +40,8 @@ class SawyerEnv(Env, Serializable):
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
         self.set_safety_box()
         self.joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
-        self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
+        # self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
+        self.link_names = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6']
 
         self.action_mode = action_mode
         self.relative_pos_control = relative_pos_control
@@ -67,21 +70,28 @@ class SawyerEnv(Env, Serializable):
 
         self._set_action_space()
         self._set_observation_space()
-        self.get_latest_pose_jacobian_dict()
+        # self.get_latest_pose_jacobian_dict()
         self.in_reset = True
         self.amplify = np.ones(7)*self.joint_torque_high
         self.thresh = True
+        self.prev_time = time.time()
 
     def set_safety_box(self,
                        pos_low = np.array([0.53, -.32, 0.35]),
                        pos_high = np.array([0.75, 0.32, 0.5]),
                        torq_low = np.array([0.2, -0.2, .03]),
                        torq_high = np.array([0.6, 0.2, 0.5]),
+                       ee_low = np.zeros(3),
+                       ee_high=np.zeros(3),
                     ):
-        self.ee_safety_box_high = pos_high
-        self.ee_safety_box_low = pos_low
+        self.pd_safety_box_high = pos_high
+        self.pd_safety_box_low = pos_low
         self.safety_box_lows = self.not_reset_safety_box_lows = torq_low
         self.safety_box_highs = self.not_reset_safety_box_highs = torq_high
+        self.ee_safety_box_low = ee_low
+        self.ee_safety_box_high = ee_high
+
+
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -156,6 +166,10 @@ class SawyerEnv(Env, Serializable):
             action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
         self.send_action(action)
         self.rate.sleep()
+        curr_time = time.time()
+        diff = curr_time - self.prev_time
+        self.prev_time = curr_time
+        # print(diff)
 
     def _reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
@@ -236,10 +250,20 @@ class SawyerEnv(Env, Serializable):
         #reshape to 84 x 84 x 3
         temp = np.array(temp)
         temp = temp.reshape(84, 84, 3)
-        observation = temp / 255.0
+        img = temp[:40, 12:63]
+        img = cv2.resize(img, (0, 0), fx=1.64705882, fy=2.1)
+        observation = img / 255.0
         observation = observation.transpose()
         observation = observation.flatten()
         return observation
+
+    def get_image_data(self):
+        temp = self.request_image()
+        # update the get image in server. get an 84 x 84 x 3
+        # reshape to 84 x 84 x 3
+        temp = np.array(temp)
+        temp = temp.reshape(84, 84, 3)
+        return temp
 
     def _safe_move_to_neutral(self):
         for i in range(self.safe_reset_length):
@@ -304,16 +328,25 @@ class SawyerEnv(Env, Serializable):
         joint_dict = self.pose_jacobian_dict.copy()
         keys_to_remove = []
         for joint in joint_dict.keys():
-            if self._pose_in_box(joint_dict[joint][0]):
+            if (joint == 'right_l6' or joint=='_hand') and not self.in_reset:
+                lows = self.ee_safety_box_low
+                highs = self.ee_safety_box_high
+            else:
+                lows = self.safety_box_lows
+                highs = self.safety_box_highs
+            if self._pose_in_box(joint_dict[joint][0], lows, highs):
                 keys_to_remove.append(joint)
+            else:
+                print('violated', joint_dict[joint][0])
         for key in keys_to_remove:
             del joint_dict[key]
+        print(joint_dict.keys())
         return joint_dict
-
-    def _pose_in_box(self, pose):
+    
+    def _pose_in_box(self, pose,lows, highs):
         within_box = [curr_pose > lower_pose and curr_pose < higher_pose
                       for curr_pose, lower_pose, higher_pose
-                      in zip(pose, self.safety_box_lows, self.safety_box_highs)]
+                      in zip(pose, lows, highs)]
         return all(within_box)
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):

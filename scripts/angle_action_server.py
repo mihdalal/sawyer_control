@@ -20,7 +20,7 @@ def angle_action_server():
     rospy.init_node('angle_action_server', anonymous=True)
     global arm
     arm = ii.Limb('right')
-    arm.set_joint_position_speed(0.1)
+    arm.set_joint_position_speed(0.15)
     s = rospy.Service('angle_action', angle_action, execute_action)
     rospy.spin()
 
