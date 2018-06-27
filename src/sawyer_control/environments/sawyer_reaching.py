@@ -69,13 +69,13 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         if desired is None:
             self._randomize_desired_angles()
         else:
-            self.desired = desired
+            self._state_goal = desired
         self._randomize_goal_on_reset = randomize_goal_on_reset
         super().__init__(**kwargs)
 
     def reward(self):
         current = self._joint_angles()
-        differences = self.compute_angle_difference(current, self.desired)
+        differences = self.compute_angle_difference(current, self._state_goal)
         reward = self.reward_function(differences)
         return reward
 
@@ -134,7 +134,7 @@ class SawyerJointSpaceReachingEnv(SawyerEnv):
         self._observation_space = Box(lows, highs)
 
     def _randomize_desired_angles(self):
-        self.desired = np.random.rand(1, 7)[0] * 2 - 1
+        self._state_goal = np.random.rand(1, 7)[0] * 2 - 1
 
     def reset(self):
         self.in_reset = True
@@ -155,12 +155,12 @@ class SawyerXYZReachingEnv(SawyerEnv):
         if desired is None:
             self._randomize_desired_end_effector_pose()
         else:
-            self.desired = desired
+            self._state_goal = desired
         self._randomize_goal_on_reset = randomize_goal_on_reset
 
     def reward(self):
         current = self._end_effector_pose()[:3]
-        differences = self.desired - current
+        differences = self._state_goal - current
         reward = self.reward_function(differences)
         return reward
 
@@ -195,10 +195,10 @@ class SawyerXYZReachingEnv(SawyerEnv):
         return np.random.uniform(reaching_box_lows, reaching_box_highs, size=(batch_size, 3))
 
     def _randomize_desired_end_effector_pose(self):
-        self.desired = self._get_random_ee_pose()[0]
+        self._state_goal = self._get_random_ee_pose()[0]
 
     def reset(self):
-        # print('DESIRED', self.desired, 'ACTUAL', self._end_effector_pose()[0:3])
+        # print('DESIRED', self._state_goal, 'ACTUAL', self._end_effector_pose()[0:3])
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False

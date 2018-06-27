@@ -201,7 +201,7 @@ class SawyerEnv(Env, Serializable):
             velocities,
             torques,
             endpoint_pose,
-            self.desired
+            self._state_goal
         ))
         return temp
 
@@ -275,7 +275,7 @@ class SawyerEnv(Env, Serializable):
         return joint_dict
 
     def _pose_in_box(self, pose):
-        #TODO: DOUBLE CHECK THIS WORKS 
+        #TODO: DOUBLE CHECK THIS WORKS
         within_box = self.safety_box.contains(pose)
         return within_box
 
@@ -362,6 +362,29 @@ class SawyerEnv(Env, Serializable):
     @property
     def observation_space(self):
         return self._observation_space
+    
+    def _set_action_space(self):
+        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
+        self.joint_torque_high = max_torques
+        self.joint_torque_low = -1 * max_torques
+
+        if self.action_mode == 'position':
+            delta_high = self.ee_pd_action_limit * np.ones(3)
+            delta_low = self.ee_pd_action_limit * -1 * np.ones(3)
+
+            self._action_space = Box(
+                delta_low,
+                delta_high,
+            )
+        else:
+            self._action_space = Box(
+                self.joint_torque_low,
+                self.joint_torque_high
+            )
+            
+    """ 
+    ROS Functions 
+    """
 
     def init_rospy(self, update_hz):
         rospy.init_node('sawyer_env', anonymous=True)
@@ -392,10 +415,8 @@ class SawyerEnv(Env, Serializable):
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            resp = execute_action(angles)
-            return (
-                    None
-            ) #TODO: why does this return (None)
+            execute_action(angles)
+            return None
         except rospy.ServiceException as e:
             print(e)
 
@@ -408,47 +429,51 @@ class SawyerEnv(Env, Serializable):
 
             return (
                 resp.joint_angles
-            )
+            ) #TODO: why is this in a tuple? can this be removed?
         except rospy.ServiceException as e:
             print(e)
 
-
-    def request_angle_action(self, angles):
-        rospy.wait_for_service('angle_action')
-        try:
-            execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            resp = execute_action(angles)
-            return (
-                    None
-            ) #TODO: why does this return (None)
-        except rospy.ServiceException as e:
-            print(e)
+    """
+       Multitask functions
+       """
 
     @property
-    def horizon(self):
-        raise NotImplementedError
+    def goal_dim(self):
+        return 3
 
-    def terminate(self):
-        self.reset()
+    def get_goal(self):
+        return self._state_goal
 
-    def _set_observation_space(self):
-        raise NotImplementedError
-
-    def _set_action_space(self):
-        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
-        self.joint_torque_high = max_torques
-        self.joint_torque_low = -1 * max_torques
-
-        if self.action_mode == 'position':
-            delta_high = self.ee_pd_action_limit * np.ones(3)
-            delta_low = self.ee_pd_action_limit * -1 * np.ones(3)
-
-            self._action_space = Box(
-                delta_low,
-                delta_high,
+    def sample_goals(self, batch_size):
+        if self.fix_goal:
+            goals = np.repeat(
+                self.fixed_goal.copy()[None],
+                batch_size,
+                0
             )
         else:
-            self._action_space = Box(
-                self.joint_torque_low,
-                self.joint_torque_high
+            goals = np.random.uniform(
+                self.goal_space.low,
+                self.goal_space.high,
+                size=(batch_size, self.goal_space.low.size),
             )
+        return goals
+
+    def compute_rewards(self, actions, obs, goals):
+        distances = np.linalg.norm(obs - goals, axis=1)
+        if self.reward_type == 'hand_distance':
+            r = -distances
+        elif self.reward_type == 'hand_success':
+            r = -(distances < self.indicator_threshold).astype(float)
+        else:
+            raise NotImplementedError("Invalid/no reward type.")
+        return r
+
+    def set_to_goal(self, goal):
+        raise NotImplementedError()
+
+    def get_env_state(self):
+        raise NotImplementedError()
+
+    def set_env_state(self, state):
+        raise NotImplementedError()
