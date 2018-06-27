@@ -1,23 +1,19 @@
 import numpy as np
 import rospy
-from sawyer_control.joint_angle_pd_controller import AnglePDController
-from sawyer_control.eval_util import create_stats_ordered_dict
-from sawyer_control.serializable import Serializable
 from collections import OrderedDict
-from rllab.spaces.box import Box
-from gym.spaces import Box #TODO: INTEGRATE THIS IN TO WORK
+import gym
+import time
+from gym.spaces import Box
+from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
+from sawyer_control.core.eval_util import create_stats_ordered_dict
+from sawyer_control.core.serializable import Serializable
+from sawyer_control.core.multitask_env import MultitaskEnv
+from sawyer_control.configs import *
 from sawyer_control.srv import observation
-from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
-from rllab.envs.base import Env
-import gym
-import time
-#TODO: FIX IMPORTS
-from sawyer_control.core.multitask_env import MultitaskEnv
-from sawyer_control.configs import *
-
+from sawyer_control.msg import actions
 
 class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def __init__(

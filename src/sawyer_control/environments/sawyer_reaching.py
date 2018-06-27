@@ -4,9 +4,6 @@ from sawyer_control.sawyer_env_base import SawyerEnv
 from rllab.spaces.box import Box
 from sawyer_control.serializable import Serializable
 
-
-
-
 class SawyerJointSpaceReachingEnv(SawyerEnv):
     def __init__(self,
                  desired = None,
