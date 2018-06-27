@@ -5,7 +5,7 @@ from sawyer_control.eval_util import create_stats_ordered_dict
 from sawyer_control.serializable import Serializable
 from collections import OrderedDict
 from rllab.spaces.box import Box
-from gym.spaces import Box #TODO: INTEGRATE THIS IN TO WORK 
+from gym.spaces import Box #TODO: INTEGRATE THIS IN TO WORK
 from sawyer_control.srv import observation
 from sawyer_control.msg import actions
 from sawyer_control.srv import getRobotPoseAndJacobian
@@ -13,10 +13,11 @@ from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from rllab.envs.base import Env
 import time
+#TODO: FIX IMPORTS
 class SawyerEnv(Env, Serializable):
     def __init__(
             self,
-            update_hz=20, #look into the freq update
+            update_hz=20,
             action_mode='torque',
             relative_pos_control=True,
             safety_box=True,
@@ -90,51 +91,18 @@ class SawyerEnv(Env, Serializable):
 
     def _act(self, action):
         if self.action_mode == 'position':
-            if self.relative_pos_control:
-                action /= 10.
-            self._joint_act(action)
+            self._joint_act(action/10)
         else:
             self._torque_act(action)
         return
 
     def _joint_act(self, action):
         ee_pos = self._end_effector_pose()
-        if self.relative_pos_control:
-            target_ee_pos = (ee_pos[:3] + action)
-        else:
-            target_ee_pos = action
+        target_ee_pos = (ee_pos[:3] + action)
         target_ee_pos = np.clip(target_ee_pos, self.ee_safety_box_low, self.ee_safety_box_high)
         target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
         angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
         self.send_angle_action(angles)
-
-    def _jac_act_damp(self, action):
-        ee_pos = self._end_effector_pose()[:3]
-        action = np.clip(action, -1*self.ee_pd_action_limit, self.ee_pd_action_limit)
-        action /= 10.0
-        target_ee_pos = (ee_pos + action)
-        prev_torques = 0
-        for i in range(self.ee_pd_time_steps):
-            ee_pos = self._end_effector_pose()[:3]
-            difference = (target_ee_pos - ee_pos) * -1
-            torques = self._jacobian_pseudo_inverse_torques(difference)
-            torques = -1*(torques * self.ee_pd_scale + self.ee_pd_damping_scale * (torques - prev_torques))
-            prev_torques = torques
-            self._torque_act(torques)
-            if self._endpoint_within_threshold(ee_pos, target_ee_pos):
-                break
-
-    def _jacobian_pseudo_inverse_torques(self, difference_ee_pos):
-        self.get_latest_pose_jacobian_dict()
-        ee_jac = self.pose_jacobian_dict['right_l6'][1]
-        return ee_jac.T @ np.linalg.inv(ee_jac @ ee_jac.T) @ difference_ee_pos * self.ee_pd_scale
-
-    def _endpoint_within_threshold(self, ee_pos, target_ee_pos):
-        maximum = np.max(np.abs(ee_pos-target_ee_pos)[:2])
-        cond = maximum < .02
-        z_cond = np.abs(ee_pos-target_ee_pos)[2] <.02
-        cond = cond and z_cond
-        return cond
 
     def _torque_act(self, action):
         if self.safety_box:
@@ -307,10 +275,9 @@ class SawyerEnv(Env, Serializable):
         return joint_dict
 
     def _pose_in_box(self, pose):
-        within_box = [curr_pose > lower_pose and curr_pose < higher_pose
-                      for curr_pose, lower_pose, higher_pose
-                      in zip(pose, self.safety_box_lows, self.safety_box_highs)]
-        return all(within_box)
+        #TODO: DOUBLE CHECK THIS WORKS 
+        within_box = self.safety_box.contains(pose)
+        return within_box
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):
         forces_dict = {}
