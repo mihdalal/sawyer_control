@@ -3,6 +3,9 @@ from std_msgs.msg import Empty
 
 import numpy as np
 
+from sawyer_control import config
+
+
 class AnglePDController(object):
     """
     PD Controller for Moving to Neutral
@@ -21,27 +24,16 @@ class AnglePDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self._des_angles = {'right_j6': 2.9079873046875, 'right_j5': 0.4708291015625,
-                            'right_j4': 0.2794638671875,
-                            'right_j3': 1.80162890625,
-                            'right_j2': -0.21348046875,
-                            'right_j1': -0.9783408203125,
-                            'right_j0': 0.0304824218}
+        self._des_angles = config.reset_dict
 
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
 
         self._imp_ctrl_is_active = True
-        self._limb_joint_names = ['right_j0',
-                                  'right_j1',
-                                  'right_j2',
-                                  'right_j3',
-                                  'right_j4',
-                                  'right_j5',
-                                  'right_j6']
+        self.joint_names = config.joint_names
 
-        for joint in self._limb_joint_names:
+        for joint in self.joint_names:
             self._springs[joint] = 30
             self._damping[joint] = 4
 
@@ -74,7 +66,7 @@ class AnglePDController(object):
         cmd = dict()
 
         # calculate current forces
-        for idx, joint in enumerate(self._limb_joint_names):
+        for idx, joint in enumerate(self.joint_names):
             # spring portion
             cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
                                                  current_joint_angles[idx])
@@ -82,6 +74,6 @@ class AnglePDController(object):
             cmd[joint] -= self._damping[joint] * current_joint_velocities[idx]
 
         cmd = np.array([
-            cmd[joint] for joint in self._limb_joint_names
+            cmd[joint] for joint in self.joint_names
         ])
         return cmd

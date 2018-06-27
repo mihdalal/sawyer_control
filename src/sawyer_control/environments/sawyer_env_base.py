@@ -12,21 +12,22 @@ from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from rllab.envs.base import Env
+import gym
 import time
 #TODO: FIX IMPORTS
-class SawyerEnv(Env, Serializable):
+from sawyer_control.core.multitask_env import MultitaskEnv
+
+
+class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def __init__(
             self,
             update_hz=20,
             action_mode='torque',
-            relative_pos_control=True,
             safety_box=True,
-            reward='norm',
             huber_delta=10,
             safety_force_magnitude=5,
             safety_force_temp=5,
             safe_reset_length=200,
-            reward_magnitude=1,
             ee_pd_time_steps=25,
             ee_pd_scale = 25,
             ee_pd_damping_scale=20,
@@ -35,7 +36,6 @@ class SawyerEnv(Env, Serializable):
     ):
         Serializable.quick_init(self, locals())
         self.init_rospy(update_hz)
-        self.latest_t = 0
         self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
         self.reset_safety_box_highs = np.array([.9, 0.4, 2])
         self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
@@ -59,8 +59,6 @@ class SawyerEnv(Env, Serializable):
         # self.safety_box_highs = self.not_reset_safety_box_highs = [.6, .2, .5]
 
         self.action_mode = action_mode
-        self.relative_pos_control = relative_pos_control
-        self.reward_magnitude = reward_magnitude
         self.safety_box = safety_box
         self.safe_reset_length = safe_reset_length
         self.huber_delta = huber_delta
@@ -76,13 +74,6 @@ class SawyerEnv(Env, Serializable):
         self.ee_pd_damping_scale = ee_pd_damping_scale
         self.ee_pd_action_limit = 1
         self.img_observation = img_observation
-        if reward == 'MSE':
-            self.reward_function = self._MSE_reward
-        elif reward == 'huber':
-            self.reward_function = self._Huber_reward
-        else:
-            self.reward_function = self._Norm_reward
-
         self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
@@ -154,21 +145,6 @@ class SawyerEnv(Env, Serializable):
         _, _, _, endpoint_pose = self.request_observation()
         return np.array(endpoint_pose)
 
-    def _MSE_reward(self, differences):
-        reward = -np.mean(differences**2)
-        return reward
-
-    def _Huber_reward(self, differences):
-        a = np.abs(np.mean(differences))
-        if a <= self.huber_delta:
-            reward = -1 / 2 * a ** 2
-        else:
-            reward = -1 * self.huber_delta * (a - 1 / 2 * self.huber_delta)
-        return reward
-
-    def _Norm_reward(self, differences):
-        return -1*np.linalg.norm(differences)
-
     def compute_angle_difference(self, angles1, angles2):
         self._wrap_angles(angles1)
         self._wrap_angles(angles2)
@@ -179,15 +155,12 @@ class SawyerEnv(Env, Serializable):
     def step(self, action):
         self._act(action)
         observation = self._get_observation()
-        reward = self.reward() * self.reward_magnitude
+        reward = self.compute_rewards(action, observation, self._state_goal)
         done = False
         info = dict(true_state=observation)
         if self.img_observation:
             observation = self._get_image()
         return observation, reward, done, info
-
-    def reward(self):
-        raise NotImplementedError
 
     def _get_observation(self):
         angles = self._joint_angles()
@@ -402,6 +375,7 @@ class SawyerEnv(Env, Serializable):
         try:
             request = rospy.ServiceProxy('observations', observation, persistent=True)
             obs = request()
+            #TODO: FIX THIS TO RETURN NP ARRAYS ONLY 
             return (
                     obs.angles,
                     obs.velocities,
