@@ -15,9 +15,9 @@ for desired in desireds:
     for i in range(num_trials):
         env.reset()
         for j in range(num_steps):
-            original = env._end_effector_pose()[:3]
+            original = env._get_endeffector_pose()[:3]
             act = desired - original
             env._act(act)
-        current = env._end_effector_pose()[:3]
+        current = env._get_endeffector_pose()[:3]
         dist += np.linalg.norm(desired-current)
     print(dist/num_trials)

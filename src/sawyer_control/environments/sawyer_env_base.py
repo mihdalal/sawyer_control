@@ -26,8 +26,8 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             self,
             action_mode='torque',
             use_safety_box=True,
-            action_scale=1,
-            safe_reset_length=200,
+            torque_action_scale=1,
+            position_action_scale=1/10,
             config = base_config,
     ):
         Serializable.quick_init(self, locals())
@@ -52,28 +52,28 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         # self.safety_box_highs = self.not_reset_safety_box_highs = [.6, .2, .5]
 
         self.use_safety_box = use_safety_box
-        self.safe_reset_length = safe_reset_length
         self.AnglePDController = AnglePDController(config=self.config)
 
         self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.action_scale = action_scale
+        self.torque_action_scale = torque_action_scale
+        self.position_action_scale = position_action_scale
 
     def _act(self, action):
         if self.action_mode == 'position':
-            self._joint_act(action/10)
+            self._joint_act(action*self.position_action_scale)
         else:
-            self._torque_act(action)
+            self._torque_act(action*self.torque_action_scale)
         return
 
     def _joint_act(self, action):
-        ee_pos = self._end_effector_pose()
+        ee_pos = self._get_endeffector_pose()
         target_ee_pos = (ee_pos[:3] + action)
         target_ee_pos = np.clip(target_ee_pos, self.ee_safety_box_low, self.ee_safety_box_high)
         target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
-        angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
+        angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         self.send_angle_action(angles)
 
     def _torque_act(self, action):
@@ -98,15 +98,14 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         if self.in_reset:
             action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
         else:
-            action = self.action_scale * action
             action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
         self.send_action(action)
         self.rate.sleep()
 
-    def _reset_angles_within_threshold(self):
+    def _check_reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
         desired_neutral = np.array([desired_neutral[joint] for joint in self.config.JOINT_NAMES])
-        actual_neutral = (self._joint_angles())
+        actual_neutral = (self._get_joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
         ERROR_THRESHOLD = .15*np.ones(7)
         is_within_threshold = (errors < ERROR_THRESHOLD).all()
@@ -115,48 +114,41 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def _wrap_angles(self, angles):
         return angles % (2*np.pi)
 
-    def _joint_angles(self):
+    def _get_joint_angles(self):
         angles, _, _, _ = self.request_observation()
-        angles = np.array(angles)
         return angles
 
-    def _end_effector_pose(self):
+    def _get_endeffector_pose(self):
         _, _, _, endpoint_pose = self.request_observation()
-        return np.array(endpoint_pose)
+        return endpoint_pose
 
     def compute_angle_difference(self, angles1, angles2):
-        self._wrap_angles(angles1)
-        self._wrap_angles(angles2)
         deltas = np.abs(angles1 - angles2)
         differences = np.minimum(2 * np.pi - deltas, deltas)
         return differences
 
     def step(self, action):
         self._act(action)
-        observation = self._get_observation()
+        observation = self._get_obs()
         reward = self.compute_rewards(action, observation, self._state_goal)
+        info = self._get_info()
         done = False
-        info = dict(true_state=observation)
         return observation, reward, done, info
 
-    def _get_observation(self):
-        angles = self._joint_angles()
-        _, velocities, torques, _ = self.request_observation()
-        velocities = np.array(velocities)
-        torques = np.array(torques)
-        endpoint_pose = self._end_effector_pose()
+    def _get_info(self):
+        return dict()
 
-        temp = np.hstack((
+    def _get_obs(self):
+        angles, velocities, _, endpoint_pose = self.request_observation()
+        obs = np.hstack((
             angles,
             velocities,
-            torques,
             endpoint_pose,
-            self._state_goal
         ))
-        return temp
+        return obs
 
     def _safe_move_to_neutral(self):
-        for i in range(self.safe_reset_length):
+        for i in range(self.config.RESET_LENGTH):
             cur_pos, cur_vel, _, _ = self.request_observation()
             torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
             self._torque_act(torques)
@@ -164,7 +156,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
                 break
 
     def _reset_complete(self):
-        close_to_desired_reset_pos = self._reset_angles_within_threshold()
+        close_to_desired_reset_pos = self._check_reset_angles_within_threshold()
         _, velocities, _, _ = self.request_observation()
         velocities = np.abs(np.array(velocities))
         VELOCITY_THRESHOLD = .002 * np.ones(7)
@@ -175,7 +167,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
-        return self._get_observation()
+        return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
         self.pose_jacobian_dict = self._get_robot_pose_jacobian_client('right')
@@ -282,6 +274,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         return np.linalg.norm([x, y, z])
 
     def log_diagnostics(self, paths, logger=None):
+        #TODO: MAKE THIS GET_DIAGNOSTICS
         '''
         :param paths: dictionary of trajectory information
         :param logger: rllab logger or similar variant should be passed in
@@ -347,10 +340,10 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             obs = request()
             #TODO: FIX THIS TO RETURN NP ARRAYS ONLY
             return (
-                    obs.angles,
-                    obs.velocities,
-                    obs.torques,
-                    obs.endpoint_pose
+                    self._wrap_angles(np.array(obs.angles)),
+                    np.array(obs.velocities),
+                    np.array(obs.torques),
+                    np.array(obs.endpoint_pose)
             )
         except rospy.ServiceException as e:
             print(e)
