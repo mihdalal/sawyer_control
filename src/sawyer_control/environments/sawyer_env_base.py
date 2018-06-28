@@ -16,10 +16,6 @@ from sawyer_control.msg import actions
 '''
 TODOs:
 safety box configs 
-pd controller settings should also be in configs
-safety force magnitude should be in configs as well 
-make sure set action space function is correct 
-recode jacobian code to be nicer?
 '''
 class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def __init__(
@@ -57,22 +53,24 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
-        self.in_reset = True
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
+        self.in_reset = True
 
     def _act(self, action):
         if self.action_mode == 'position':
-            self._joint_act(action*self.position_action_scale)
+            self._position_act(action * self.position_action_scale)
         else:
             self._torque_act(action*self.torque_action_scale)
         return
 
-    def _joint_act(self, action):
+    def _position_act(self, action):
         ee_pos = self._get_endeffector_pose()
-        target_ee_pos = (ee_pos[:3] + action)
+        endeffector_pos = ee_pos[:3]
+        endeffector_angles = ee_pos[3:]
+        target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.ee_safety_box_low, self.ee_safety_box_high)
-        target_ee_pos = np.concatenate((target_ee_pos, ee_pos[3:]))
+        target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         self.send_angle_action(angles)
 
@@ -101,15 +99,6 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
         self.send_action(action)
         self.rate.sleep()
-
-    def _check_reset_angles_within_threshold(self):
-        desired_neutral = self.AnglePDController._des_angles
-        desired_neutral = np.array([desired_neutral[joint] for joint in self.config.JOINT_NAMES])
-        actual_neutral = (self._get_joint_angles())
-        errors = self.compute_angle_difference(desired_neutral, actual_neutral)
-        ERROR_THRESHOLD = .15*np.ones(7)
-        is_within_threshold = (errors < ERROR_THRESHOLD).all()
-        return is_within_threshold
 
     def _wrap_angles(self, angles):
         return angles % (2*np.pi)
@@ -162,6 +151,14 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         VELOCITY_THRESHOLD = .002 * np.ones(7)
         no_velocity = (velocities < VELOCITY_THRESHOLD).all()
         return close_to_desired_reset_pos and no_velocity
+    
+    def _check_reset_angles_within_threshold(self):
+        desired_neutral = self.AnglePDController._des_angles
+        desired_neutral = np.array([desired_neutral[joint] for joint in self.config.JOINT_NAMES])
+        actual_neutral = (self._get_joint_angles())
+        errors = self.compute_angle_difference(desired_neutral, actual_neutral)
+        is_within_threshold = (errors < self.config.RESET_ERROR_THRESHOLD).all()
+        return is_within_threshold
 
     def reset(self):
         self.in_reset = True
@@ -170,7 +167,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
-        self.pose_jacobian_dict = self._get_robot_pose_jacobian_client('right')
+        self.pose_jacobian_dict = self._get_robot_pose_jacobian_client('right') #why do we need to pass in 'right', why not just hardcode it to be right since that will never change
 
     def _get_robot_pose_jacobian_client(self, name):
         rospy.wait_for_service('get_robot_pose_jacobian')
@@ -178,12 +175,12 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             get_robot_pose_jacobian = rospy.ServiceProxy('get_robot_pose_jacobian', getRobotPoseAndJacobian,
                                                          persistent=True)
             resp = get_robot_pose_jacobian(name)
-            pose_jac_dict = self.get_pose_jacobian_dict(resp.poses, resp.jacobians)
+            pose_jac_dict = self._unpack_pose_jacobian_dict(resp.poses, resp.jacobians)
             return pose_jac_dict
         except rospy.ServiceException as e:
             print(e)
 
-    def get_pose_jacobian_dict(self, poses, jacobians):
+    def _unpack_pose_jacobian_dict(self, poses, jacobians):
         pose_jacobian_dict = {}
         pose_counter = 0
         jac_counter = 0
@@ -218,7 +215,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
 
     def _pose_in_box(self, pose):
         #TODO: DOUBLE CHECK THIS WORKS
-        within_box = self.use_safety_box.contains(pose)
+        within_box = self.safety_box.contains(pose)
         return within_box
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):
@@ -273,29 +270,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
                 z = np.abs(curr_z - self.safety_box_lows[2])
         return np.linalg.norm([x, y, z])
 
-    def log_diagnostics(self, paths, logger=None):
-        #TODO: MAKE THIS GET_DIAGNOSTICS
-        '''
-        :param paths: dictionary of trajectory information
-        :param logger: rllab logger or similar variant should be passed in
-        :return: None
-        '''
-        if logger == None:
-            pass
-        else:
-            statistics = self._get_statistics_from_paths(paths)
-            for key, value in statistics.items():
-                logger.record_tabular(key, value)
-
-    def _update_statistics_with_observation(self, observation, stat_prefix, log_title):
-        statistics = OrderedDict()
-        statistics.update(create_stats_ordered_dict(
-            '{} {}'.format(stat_prefix, log_title),
-            observation,
-        ))
-        return statistics
-
-    def _get_statistics_from_paths(self, paths):
+    def get_diagnostics(self, paths, prefix=''):
         raise NotImplementedError()
 
     @property
@@ -317,6 +292,24 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
                 self.config.JOINT_TORQUE_LOW,
                 self.config.JOINT_TORQUE_HIGH
             )
+
+    def _set_observation_space(self):
+        lows = np.hstack((
+            self.config.JOINT_VALUE_LOW['position'],
+            self.config.JOINT_VALUE_LOW['velocity'],
+            self.config.END_EFFECTOR_VALUE_LOW['position'],
+            self.config.END_EFFECTOR_VALUE_LOW['angle'],
+        ))
+        highs = np.hstack((
+            self.config.JOINT_VALUE_HIGH['position'],
+            self.config.JOINT_VALUE_HIGH['velocity'],
+            self.config.END_EFFECTOR_VALUE_HIGH['position'],
+            self.config.END_EFFECTOR_VALUE_HIGH['angle'],
+        ))
+        self._observation_space = Box(
+            lows,
+            highs,
+        )
             
     """ 
     ROS Functions 
