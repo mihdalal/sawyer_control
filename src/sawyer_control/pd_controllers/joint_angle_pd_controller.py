@@ -24,14 +24,14 @@ class AnglePDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self._des_angles = config.reset_dict
+        self._des_angles = config.RESET_DICT
 
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
 
         self._imp_ctrl_is_active = True
-        self.joint_names = config.joint_names
+        self.joint_names = config.JOINT_NAMES
 
         for joint in self.joint_names:
             self._springs[joint] = 30
@@ -53,9 +53,8 @@ class AnglePDController(object):
 
     def _compute_pd_forces(self, current_joint_angles, current_joint_velocities):
         """
-        Computes the required to torque to be applied using the sawyer's current joint angles and joint velocities
+        Computes the required torque to be applied using the sawyer's current joint angles and joint velocities
         """
-
         self.adjust_springs()
 
         # disable cuff interaction

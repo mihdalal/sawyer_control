@@ -1,18 +1,6 @@
 import numpy as np
 from gym.spaces import Box
-
-#JOINT INFO
-JOINT_NAMES = ['right_j0',
-               'right_j1',
-               'right_j2',
-               'right_j3',
-               'right_j4',
-               'right_j5',
-               'right_j6'
-               ]
-LINK_NAMES = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand']
-RESET_ANGLES = np.ones(7) #TODO: SET THIS TO A REASONABLE POSITION
-RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
+from sawyer_control.configs.ros_config import *
 
 #SPACES
 JOINT_ANGLES_HIGH = np.array([
@@ -95,7 +83,7 @@ POSITION_SAFETY_BOX_HIGHS = np.array([.6, .2, .5])
 #MISCELLANEOUS
 RESET_LENGTH = 200
 RESET_ERROR_THRESHOLD = .15*np.ones(7)
-UPDATE_HZ = 20
+UPDATE_HZ = 10
 
 #JOINT_CONTROLLER_SETTINGS
 JOINT_POSITION_SPEED = .1
