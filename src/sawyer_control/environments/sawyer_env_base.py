@@ -2,7 +2,6 @@ import numpy as np
 import rospy
 from collections import OrderedDict
 import gym
-import time
 from gym.spaces import Box
 from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
 from sawyer_control.core.eval_util import create_stats_ordered_dict
@@ -18,33 +17,25 @@ from sawyer_control.msg import actions
 TODOs:
 safety box configs 
 pd controller settings should also be in configs
-
+safety force magnitude should be in configs as well 
+make sure set action space function is correct 
+recode jacobian code to be nicer?
 '''
 class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def __init__(
             self,
-            update_hz=20,
             action_mode='torque',
-            safety_box=True,
-            huber_delta=10,
-            safety_force_magnitude=5,
-            safety_force_temp=5,
+            use_safety_box=True,
+            action_scale=1,
             safe_reset_length=200,
-            ee_pd_time_steps=25,
-            ee_pd_scale = 25,
-            ee_pd_damping_scale=20,
-            ee_pd_action_limit=1,
             config = base_config,
     ):
         Serializable.quick_init(self, locals())
-        self.init_rospy(update_hz)
-        self.reset_safety_box_lows = np.array([-.2, -0.6, 0])
-        self.reset_safety_box_highs = np.array([.9, 0.4, 2])
+        self.config = config
+        self.init_rospy(self.config.UPDATE_HZ)
+        self.action_mode = action_mode
         self.safety_box_lows = self.not_reset_safety_box_lows = [0.1, -0.5, 0]
         self.safety_box_highs = self.not_reset_safety_box_highs = [0.7, 0.5, 0.7]
-        self.config = config
-        self.joint_names = self.config.JOINT_NAMES
-        self.link_names = self.config.LINK_NAMES
         if action_mode == 'position':
             # self.ee_safety_box_low = np.array([0.23, -.302, 0.03])
             # self.ee_safety_box_high = np.array([0.60, .47, 0.409])
@@ -60,26 +51,15 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         # self.safety_box_lows = self.not_reset_safety_box_lows = [.2, -.2, .00]
         # self.safety_box_highs = self.not_reset_safety_box_highs = [.6, .2, .5]
 
-        self.action_mode = action_mode
-        self.safety_box = safety_box
+        self.use_safety_box = use_safety_box
         self.safe_reset_length = safe_reset_length
-        self.huber_delta = huber_delta
-        self.safety_force_magnitude = safety_force_magnitude
-        self.safety_force_temp = safety_force_temp
-        self.AnglePDController = AnglePDController()
+        self.AnglePDController = AnglePDController(config=self.config)
 
-        max_torques = 1/2 * np.array([8, 7, 6, 5, 4, 3, 2])
-        self.joint_torque_high = max_torques
-        self.joint_torque_low = -1 * max_torques
-        self.ee_pd_time_steps = ee_pd_time_steps
-        self.ee_pd_scale = ee_pd_scale
-        self.ee_pd_damping_scale = ee_pd_damping_scale
-        self.ee_pd_action_limit = 1
         self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
         self.in_reset = True
-        self.amplify = np.ones(7)*self.joint_torque_high
+        self.action_scale = action_scale
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -97,10 +77,10 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         self.send_angle_action(angles)
 
     def _torque_act(self, action):
-        if self.safety_box:
+        if self.use_safety_box:
             if self.in_reset:
-                self.safety_box_highs = self.reset_safety_box_highs
-                self.safety_box_lows = self.reset_safety_box_lows
+                self.safety_box_highs = self.config.RESET_SAFETY_BOX_HIGHS
+                self.safety_box_lows = self.config.RESET_SAFETY_BOX_LOWS
             else:
                 self.safety_box_lows = self.not_reset_safety_box_lows
                 self.safety_box_highs = self.not_reset_safety_box_highs
@@ -116,18 +96,16 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
                 torques[-1] = 0
                 action = torques
         if self.in_reset:
-            np.clip(action, -5, 5, out=action)
+            action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
         else:
-            action = self.amplify * action
-            action = np.clip(np.asarray(action), self.joint_torque_low, self.joint_torque_high)
+            action = self.action_scale * action
+            action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
         self.send_action(action)
         self.rate.sleep()
-        curr = time.time()
-        self.prev = curr
 
     def _reset_angles_within_threshold(self):
         desired_neutral = self.AnglePDController._des_angles
-        desired_neutral = np.array([desired_neutral[joint] for joint in self.joint_names])
+        desired_neutral = np.array([desired_neutral[joint] for joint in self.config.JOINT_NAMES])
         actual_neutral = (self._joint_angles())
         errors = self.compute_angle_difference(desired_neutral, actual_neutral)
         ERROR_THRESHOLD = .15*np.ones(7)
@@ -219,7 +197,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         jac_counter = 0
         poses = np.array(poses)
         jacobians = np.array(jacobians)
-        for link in self.link_names:
+        for link in self.config.LINK_NAMES:
             pose = poses[pose_counter:pose_counter + 3]
             jacobian = []
             for i in range(jac_counter, jac_counter+21, 7):
@@ -248,7 +226,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
 
     def _pose_in_box(self, pose):
         #TODO: DOUBLE CHECK THIS WORKS
-        within_box = self.safety_box.contains(pose)
+        within_box = self.use_safety_box.contains(pose)
         return within_box
 
     def _get_adjustment_forces_per_joint_dict(self, joint_dict):
@@ -266,19 +244,19 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         curr_z = pose[2]
 
         if curr_x > self.safety_box_highs[0]:
-            x = -1 * np.exp(np.abs(curr_x - self.safety_box_highs[0]) * self.safety_force_temp) * self.safety_force_magnitude
+            x = -1 * np.exp(np.abs(curr_x - self.safety_box_highs[0]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
         elif curr_x < self.safety_box_lows[0]:
-            x = np.exp(np.abs(curr_x - self.safety_box_lows[0]) * self.safety_force_temp) * self.safety_force_magnitude
+            x = np.exp(np.abs(curr_x - self.safety_box_lows[0]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
 
         if curr_y > self.safety_box_highs[1]:
-            y = -1 * np.exp(np.abs(curr_y - self.safety_box_highs[1]) * self.safety_force_temp) * self.safety_force_magnitude
+            y = -1 * np.exp(np.abs(curr_y - self.safety_box_highs[1]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
         elif curr_y < self.safety_box_lows[1]:
-            y = np.exp(np.abs(curr_y - self.safety_box_lows[1]) * self.safety_force_temp) * self.safety_force_magnitude
+            y = np.exp(np.abs(curr_y - self.safety_box_lows[1]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
 
         if curr_z > self.safety_box_highs[2]:
-            z = -1 * np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+            z = -1 * np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
         elif curr_z < self.safety_box_lows[2]:
-            z = np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.safety_force_temp) * self.safety_force_magnitude
+            z = np.exp(np.abs(curr_z - self.safety_box_highs[2]) * self.config.SAFETY_FORCE_TEMPERATURE) * self.config.SAFETY_FORCE_MAGNITUDE
         return np.array([x, y, z])
 
     def _compute_joint_distance_outside_box(self, pose):
@@ -336,22 +314,15 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         return self._observation_space
     
     def _set_action_space(self):
-        max_torques = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
-        self.joint_torque_high = max_torques
-        self.joint_torque_low = -1 * max_torques
-
         if self.action_mode == 'position':
-            delta_high = self.ee_pd_action_limit * np.ones(3)
-            delta_low = self.ee_pd_action_limit * -1 * np.ones(3)
-
             self._action_space = Box(
-                delta_low,
-                delta_high,
+                self.config.POSITION_CONTROL_LOW,
+                self.config.POSITION_CONTROL_HIGH,
             )
         else:
             self._action_space = Box(
-                self.joint_torque_low,
-                self.joint_torque_high
+                self.config.JOINT_TORQUE_LOW,
+                self.config.JOINT_TORQUE_HIGH
             )
             
     """ 
