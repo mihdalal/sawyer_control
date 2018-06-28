@@ -14,7 +14,12 @@ from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.msg import actions
+'''
+TODOs:
+safety box configs 
+pd controller settings should also be in configs
 
+'''
 class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
     def __init__(
             self,
@@ -29,7 +34,6 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             ee_pd_scale = 25,
             ee_pd_damping_scale=20,
             ee_pd_action_limit=1,
-            img_observation = False,
             config = base_config,
     ):
         Serializable.quick_init(self, locals())
@@ -71,7 +75,6 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         self.ee_pd_scale = ee_pd_scale
         self.ee_pd_damping_scale = ee_pd_damping_scale
         self.ee_pd_action_limit = 1
-        self.img_observation = img_observation
         self._set_action_space()
         self._set_observation_space()
         self.get_latest_pose_jacobian_dict()
@@ -156,8 +159,6 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         reward = self.compute_rewards(action, observation, self._state_goal)
         done = False
         info = dict(true_state=observation)
-        if self.img_observation:
-            observation = self._get_image()
         return observation, reward, done, info
 
     def _get_observation(self):
