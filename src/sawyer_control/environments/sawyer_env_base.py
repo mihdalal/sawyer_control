@@ -123,10 +123,7 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
         info = self._get_info()
         done = False
         return observation, reward, done, info
-
-    def _get_info(self):
-        return dict()
-
+    
     def _get_obs(self):
         angles, velocities, _, endpoint_pose = self.request_observation()
         obs = np.hstack((
@@ -135,6 +132,19 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
             endpoint_pose,
         ))
         return obs
+
+    def compute_rewards(self, actions, obs, goals):
+        distances = np.linalg.norm(obs - goals, axis=1)
+        if self.reward_type == 'hand_distance':
+            r = -distances
+        elif self.reward_type == 'hand_success':
+            r = -(distances < self.indicator_threshold).astype(float)
+        else:
+            raise NotImplementedError("Invalid/no reward type.")
+        return r
+    
+    def _get_info(self):
+        return dict()
 
     def _safe_move_to_neutral(self):
         for i in range(self.config.RESET_LENGTH):
@@ -388,16 +398,6 @@ class SawyerEnv(gym.Env, Serializable, MultitaskEnv):
                 size=(batch_size, self.goal_space.low.size),
             )
         return goals
-
-    def compute_rewards(self, actions, obs, goals):
-        distances = np.linalg.norm(obs - goals, axis=1)
-        if self.reward_type == 'hand_distance':
-            r = -distances
-        elif self.reward_type == 'hand_success':
-            r = -(distances < self.indicator_threshold).astype(float)
-        else:
-            raise NotImplementedError("Invalid/no reward type.")
-        return r
 
     def set_to_goal(self, goal):
         raise NotImplementedError()

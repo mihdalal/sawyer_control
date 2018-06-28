@@ -6,7 +6,8 @@ from sawyer_control.inverse_kinematics import *
 from geometry_msgs.msg import (
     Quaternion,
 )
-joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
+from sawyer_control.src.sawyer_control.configs import *
+joint_names = base_config.JOINT_NAMES
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
@@ -20,21 +21,8 @@ def compute_joint_angle(req):
     )
 
     pose = get_pose_stamped(ee_pos[0], ee_pos[1], ee_pos[2], Q)
-    curr_joint_angles = dict(zip(joint_names, curr_joint_angles))
-    # reset_angles =  {'right_j0': 0.298009765625,
-    #                         'right_j2': -0.350818359375,
-    #                         'right_j4': 0.0557021484375,
-    #                         'right_j3': 1.1678642578125,
-    #                         'right_j1': -1.1768076171875,
-    #                         'right_j6': 3.2978828125,
-    #                         'right_j5': 1.3938330078125}
-
-    reset_angles = {'right_j6': 2.9079873046875, 'right_j5': 0.4708291015625,
-                            'right_j4': 0.2794638671875,
-                            'right_j3': 1.80162890625,
-                            'right_j2': -0.21348046875,
-                            'right_j1': -0.9783408203125,
-                            'right_j0': 0.0304824218}
+    curr_joint_angles = dict(zip(joint_names, curr_joint_angles)) #what is this for?
+    reset_angles = base_config.RESET_JOINT_ANGLES
     ik_angles = get_joint_angles(pose, reset_angles, True)
     ik_angles = [ik_angles[joint] for joint in joint_names]
     print(ik_angles)

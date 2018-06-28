@@ -3,19 +3,20 @@ import rospy
 import intera_interface as ii
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import *
+from sawyer_control.src.configs import *
 
 def execute_action(action_msg):
     action = action_msg.angles
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
-    arm.move_to_joint_positions(joint_to_values, timeout = 0.5)
+    arm.move_to_joint_positions(joint_to_values, timeout = base_config.JOINT_POSITION_TIMEOUT)
     return angle_actionResponse(True)
 
 def angle_action_server():
     rospy.init_node('angle_action_server', anonymous=True)
     global arm
     arm = ii.Limb('right')
-    arm.set_joint_position_speed(0.1)
+    arm.set_joint_position_speed(base_config.JOINT_POSITION_SPEED)
     s = rospy.Service('angle_action', angle_action, execute_action)
     rospy.spin()
 
