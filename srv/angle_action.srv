@@ -1,4 +1,5 @@
 float32[] angles
 bool thresh
+bool joint_space_impd
 ---
 bool data
