@@ -6,8 +6,8 @@ from sawyer_control.inverse_kinematics import *
 from geometry_msgs.msg import (
     Quaternion,
 )
-from sawyer_control.src.sawyer_control.configs import *
-joint_names = base_config.JOINT_NAMES
+from sawyer_control.configs import ros_config
+joint_names = ros_config.JOINT_NAMES
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos

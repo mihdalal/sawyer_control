@@ -5,7 +5,7 @@ from gym.spaces import Box
 from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.multitask_env import MultitaskEnv
-from sawyer_control.configs import *
+from sawyer_control.configs import base_config
 from sawyer_control.srv import observation
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik

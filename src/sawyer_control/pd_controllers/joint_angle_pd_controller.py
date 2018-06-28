@@ -3,7 +3,7 @@ from std_msgs.msg import Empty
 
 import numpy as np
 
-from sawyer_control.configs import *
+from sawyer_control.configs import base_config
 
 
 class AnglePDController(object):
