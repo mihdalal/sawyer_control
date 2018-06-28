@@ -321,7 +321,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
             return (
                     self._wrap_angles(np.array(obs.angles)),
                     np.array(obs.velocities),
-                    np.array(obs.torques),
                     np.array(obs.endpoint_pose)
             )
         except rospy.ServiceException as e:
