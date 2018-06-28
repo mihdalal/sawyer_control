@@ -1,10 +1,8 @@
 import numpy as np
 import rospy
-from collections import OrderedDict
 import gym
 from gym.spaces import Box
 from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
-from sawyer_control.core.eval_util import create_stats_ordered_dict
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.multitask_env import MultitaskEnv
 from sawyer_control.configs import *
@@ -13,10 +11,6 @@ from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.msg import actions
-'''
-TODOs:
-safety box configs 
-'''
 class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
     def __init__(
             self,
