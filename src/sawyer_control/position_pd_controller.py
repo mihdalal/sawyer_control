@@ -1,9 +1,9 @@
 import rospy
 from std_msgs.msg import Empty
-
+from sawyer_control.srv import ik
 import numpy as np
 
-class AnglePDController(object):
+class PositionPDController(object):
     """
     PD Controller for Moving to Neutral
     """
@@ -21,15 +21,7 @@ class AnglePDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self._des_angles = {'right_j0': 0.298009765625,
-                            'right_j2': -0.350818359375,
-                            'right_j4': 0.0557021484375,
-                            'right_j3': 1.1678642578125,
-                            'right_j1': -1.1768076171875,
-                            'right_j6': 3.2978828125,
-                            'right_j5': 1.3938330078125}
-
-        self.max_stiffness = 20
+        self.max_stiffness = 100
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
 
@@ -44,10 +36,7 @@ class AnglePDController(object):
 
         for joint in self._limb_joint_names:
             self._springs[joint] = 30
-            self._damping[joint] = 4
-
-    def _set_des_pos(self, des_angles_dict):
-        self._des_angles = des_angles_dict
+            self._damping[joint] = 1
 
     def adjust_springs(self):
         for joint in list(self._des_angles.keys()):
@@ -60,7 +49,10 @@ class AnglePDController(object):
             else:
                 print("warning t_delta smaller than zero!")
 
-    def _compute_pd_forces(self, current_joint_angles, current_joint_velocities):
+    def get_angles(self, ee_pos, current_joint_angles):
+        return self.request_ik_angles(ee_pos, current_joint_angles)
+
+    def _compute_pd_forces(self, current_joint_angles, current_joint_velocities, desired_ee_pos):
         """
         Computes the required to torque to be applied using the sawyer's current joint angles and joint velocities
         """
@@ -73,8 +65,9 @@ class AnglePDController(object):
 
         # create our command dict
         cmd = dict()
-
+        des_angles = self.get_angles(desired_ee_pos, current_joint_angles)
         # calculate current forces
+        self._des_angles = dict(zip(self._limb_joint_names, des_angles))
         for idx, joint in enumerate(self._limb_joint_names):
             # spring portion
             cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
@@ -85,4 +78,17 @@ class AnglePDController(object):
         cmd = np.array([
             cmd[joint] for joint in self._limb_joint_names
         ])
+
         return cmd
+
+    def request_ik_angles(self, ee_pos, joint_angles):
+        rospy.wait_for_service('ik')
+        try:
+            get_joint_angles = rospy.ServiceProxy('ik', ik, persistent=True)
+            resp = get_joint_angles(ee_pos, joint_angles)
+
+            return (
+                resp.joint_angles
+            )
+        except rospy.ServiceException as e:
+            print(e)
