@@ -63,90 +63,6 @@ END_EFFECTOR_VALUE_HIGH = {
 }
 
 
-class SawyerJointSpaceReachingEnv(SawyerEnv):
-    def __init__(self,
-                 desired = None,
-                 randomize_goal_on_reset=False,
-                 **kwargs
-                 ):
-        Serializable.quick_init(self, locals())
-        if desired is None:
-            self._randomize_desired_angles()
-        else:
-            self.desired = desired
-        self._randomize_goal_on_reset = randomize_goal_on_reset
-        super().__init__(**kwargs)
-
-    def reward(self):
-        current = self._joint_angles()
-        differences = self.compute_angle_difference(current, self.desired)
-        reward = self.reward_function(differences)
-        return reward
-
-    def _get_statistics_from_paths(self, paths):
-        statistics = OrderedDict()
-        stat_prefix = 'Test'
-        angle_differences, distances_outside_box = self._extract_experiment_info(paths)
-        statistics.update(self._update_statistics_with_observation(
-            angle_differences,
-            stat_prefix,
-            'Difference from Desired Joint Angle'
-        ))
-
-        return statistics
-
-    def _extract_experiment_info(self, paths):
-        obsSets = [path["next_observations"] for path in paths]
-        angles = []
-        desired_angles = []
-        positions = []
-        for obsSet in obsSets:
-            for observation in obsSet:
-                angles.append(observation[:7])
-                desired_angles.append(observation[24:31])
-                positions.append(observation[21:24])
-
-        angles = np.array(angles)
-        desired_angles = np.array(desired_angles)
-
-        differences = np.array([self.compute_angle_difference(angle_obs, desired_angle_obs)
-                                for angle_obs, desired_angle_obs in zip(angles, desired_angles)])
-        angle_differences = np.mean(differences, axis=1)
-        distances_outside_box = np.array([self._compute_joint_distance_outside_box(pose) for pose in positions])
-        return [angle_differences, distances_outside_box]
-
-    def _set_observation_space(self):
-        lows = np.hstack((
-            JOINT_VALUE_LOW['position'],
-            JOINT_VALUE_LOW['velocity'],
-            JOINT_VALUE_LOW['torque'],
-            END_EFFECTOR_VALUE_LOW['position'],
-            END_EFFECTOR_VALUE_LOW['angle'],
-            JOINT_VALUE_LOW['position'],
-        ))
-
-        highs = np.hstack((
-            JOINT_VALUE_HIGH['position'],
-            JOINT_VALUE_HIGH['velocity'],
-            JOINT_VALUE_HIGH['torque'],
-            END_EFFECTOR_VALUE_HIGH['position'],
-            END_EFFECTOR_VALUE_HIGH['angle'],
-            JOINT_VALUE_HIGH['position'],
-        ))
-
-        self._observation_space = Box(lows, highs)
-
-    def _randomize_desired_angles(self):
-        self.desired = np.random.rand(1, 7)[0] * 2 - 1
-
-    def reset(self):
-        self.in_reset = True
-        self._safe_move_to_neutral()
-        self.in_reset = False
-        if self._randomize_goal_on_reset:
-            self._randomize_desired_angles()
-        return self._get_observation()
-
 class SawyerXYZReachingEnv(SawyerEnv):
     def __init__(self,
                  desired = None,
@@ -184,27 +100,6 @@ class SawyerXYZReachingEnv(SawyerEnv):
         reward = self.reward_function(differences)
         return reward
 
-    def _set_observation_space(self):
-        lows = np.hstack((
-            JOINT_VALUE_LOW['position'],
-            JOINT_VALUE_LOW['velocity'],
-            JOINT_VALUE_LOW['torque'],
-            END_EFFECTOR_VALUE_LOW['position'],
-            END_EFFECTOR_VALUE_LOW['angle'],
-            END_EFFECTOR_VALUE_LOW['position'],
-        ))
-
-        highs = np.hstack((
-            JOINT_VALUE_HIGH['position'],
-            JOINT_VALUE_HIGH['velocity'],
-            JOINT_VALUE_HIGH['torque'],
-            END_EFFECTOR_VALUE_HIGH['position'],
-            END_EFFECTOR_VALUE_HIGH['angle'],
-            END_EFFECTOR_VALUE_HIGH['position'],
-        ))
-
-        self._observation_space = Box(lows, highs)
-
 
     def _get_random_ee_pose(self):
         high = self.pd_safety_box_high
@@ -225,6 +120,9 @@ class SawyerXYZReachingEnv(SawyerEnv):
         if self._randomize_goal_on_reset:
             self._randomize_desired_end_effector_pose()
         return self._get_observation()
+
+
+
 
     def _get_statistics_from_paths(self, paths):
         statistics = OrderedDict()
@@ -261,8 +159,8 @@ class SawyerXYZReachingEnv(SawyerEnv):
         final_10_desired_positions = []
         for obsSet in obsSets:
             for observation in obsSet:
-                pos = np.array(observation[21:24])
-                des = np.array(observation[28:31])
+                pos = np.array(observation['endpoint_pose'][:3])
+                des = np.array(observation['goal_state'])
                 distances.append(np.linalg.norm(pos - des))
                 positions.append(pos)
                 desired_positions.append(des)
@@ -302,6 +200,8 @@ class SawyerXYReachingEnv(SawyerEnv):
             desired[2] = self.z
         self._randomize_goal_on_reset = randomize_goal_on_reset
 
+
+    #TODO: ADD position control option
     def _joint_act(self, action):
         ee_pos = self._end_effector_pose()
         if self.relative_pos_control:
@@ -430,7 +330,6 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         # else:
         #     self.desired = desired
         self._randomize_goal_on_reset = randomize_goal_on_reset
-
         high = self.pd_safety_box_high
         low = self.pd_safety_box_low
         self.goal_space = Box(low, high)
@@ -440,7 +339,7 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         return 3
 
     def convert_obs_to_goals(self, obs):
-        return obs[:, 21:24] # TODO: check this!
+        return obs['goal_state'] # TODO: check this!
 
     def sample_goals(self, batch_size):
         return np.vstack([self.goal_space.sample() for i in range(batch_size)])
@@ -452,20 +351,6 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         # For VAE: actually need to move the arm to this position
         self.desired = goal
 
-    def _get_observation(self):
-        angles = self._joint_angles()
-        _, velocities, torques, _ = self.request_observation()
-        velocities = np.array(velocities)
-        torques = np.array(torques)
-        endpoint_pose = self._end_effector_pose()
-
-        temp = np.hstack((
-            angles,
-            velocities,
-            torques,
-            endpoint_pose,
-        ))
-        return temp
 
     def reward(self):
         current = self._end_effector_pose()[:3]
@@ -473,26 +358,6 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         reward = self.reward_function(differences)
         return reward
 
-    def _set_observation_space(self):
-        lows = np.hstack((
-            JOINT_VALUE_LOW['position'],
-            JOINT_VALUE_LOW['velocity'],
-            JOINT_VALUE_LOW['torque'],
-            END_EFFECTOR_VALUE_LOW['position'],
-            END_EFFECTOR_VALUE_LOW['angle'],
-            # END_EFFECTOR_VALUE_LOW['position'],
-        ))
-
-        highs = np.hstack((
-            JOINT_VALUE_HIGH['position'],
-            JOINT_VALUE_HIGH['velocity'],
-            JOINT_VALUE_HIGH['torque'],
-            END_EFFECTOR_VALUE_HIGH['position'],
-            END_EFFECTOR_VALUE_HIGH['angle'],
-            # END_EFFECTOR_VALUE_HIGH['position'],
-        ))
-
-        self._observation_space = Box(lows, highs)
 
     def _randomize_desired_end_effector_pose(self):
         #self.desired = np.random.uniform(self.safety_box_lows, self.safety_box_highs, size=(1, 3))[0]
@@ -504,30 +369,23 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         dz = np.random.uniform(low[2], high[2])
         self.desired =  np.array([dx, dy, dz])
 
-    def compute_her_reward_np(self, observation, action, next_observation, goal):
-        return -np.linalg.norm(next_observation[21:24] - goal)
+    def compute_her_reward_np(self, observation, action, next_observation):
+        return -np.linalg.norm(next_observation['endpoint_pose'][:3] - next_observation['goal_state'])
 
     def reset(self):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
-        # Don't randomize goal inside reset! In MultitaskEnv this is done by set_goal
-        # if self._randomize_goal_on_reset:
-            # self._randomize_desired_end_effector_pose()
         return self._get_observation()
-
 
 
     def step(self, action):
         self._act(action)
         observation = self._get_observation()
-        #print(observation.shape)
         reward = self.reward() * self.reward_magnitude
         done = False
         info = {}
         info['goal'] = self.desired.copy()
-        if self.img_observation:
-            observation = self.get_image()
         return observation, reward, done, info
 
     def _get_statistics_from_paths(self, paths):
@@ -539,13 +397,11 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
             stat_prefix,
             'End Effector Distance from Target'
         ))
-
         statistics.update(self._update_statistics_with_observation(
             final_position_distances,
             stat_prefix,
             'Final End Effector Distance from Target'
         ))
-
         return statistics
 
     def _extract_experiment_info(self, paths):
@@ -572,6 +428,8 @@ class SawyerXYZReachingMultitaskEnv(SawyerEnv, MultitaskEnv):
         return [distances, final_position_distances]
 
 
+
+
 class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
     def __init__(self,
                  desired = None,
@@ -593,7 +451,7 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         high = np.array([0.65, 0.32, 0.5])
         low = np.array([0.53, -.25, 0.35])
         self.goal_space = Box(low, high)
-        self.img_observation = True
+
         # self.goals = np.load('/home/mdalal/Documents/railrl-private/ee_positions.npy')
         # self.imgs = np.load('/home/mdalal/Documents/railrl-private/images.npy')
         # self.goal_idx = None
@@ -602,13 +460,10 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         return 3
 
     def convert_obs_to_goals(self, obs):
-        return obs
+        return obs['goal_state']
 
     def sample_goals(self, batch_size):
         #sample a random set of goals from goal dict
-        # self.goal_idx= np.random.randint(0, self.goals.shape[0])
-        # goals = self.goals[self.goal_idx]
-        # return [goals]
         return np.vstack([self.goal_space.sample() for i in range(batch_size)])
 
     def set_goal(self, goal):
@@ -629,8 +484,7 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         reward = self.reward_function(differences)
         return reward
 
-    def _set_observation_space(self):
-        self._observation_space = Box(np.zeros((21168,)), 1.0*np.ones(21168,))
+
 
     def reset(self):
         self.in_reset = True
@@ -639,30 +493,14 @@ class SawyerXYZReachingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         observation = self.get_image()
         return observation
 
-    def _get_observation(self):
-        angles = self._joint_angles()
-        _, velocities, torques, _ = self.request_observation()
-        velocities = np.array(velocities)
-        torques = np.array(torques)
-        endpoint_pose = self._end_effector_pose()
-
-        temp = np.hstack((
-            angles,
-            velocities,
-            torques,
-            endpoint_pose,
-        ))
-        return temp
-
     def step(self, action):
         self._act(action)
         observation = self._get_observation()
         reward = self.reward() * self.reward_magnitude
         done = False
         info = {}
-        pos = np.array(observation[21:24])
+        pos = np.array(observation['endpoint_pos'][:3])
         info['distance_to_goal'] = np.linalg.norm(pos - self.desired)
-        observation = self.get_image()
         return observation, reward, done, info
 
 
@@ -780,8 +618,6 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         # reward = self.reward_function(differences)
         return current
 
-    def _set_observation_space(self):
-        self._observation_space = Box(np.zeros((21168,)), 1.0*np.ones(21168,))
 
     def _randomize_desired_end_effector_pose(self):
         #self.desired = np.random.uniform(self.safety_box_lows, self.safety_box_highs, size=(1, 3))[0]
@@ -793,7 +629,7 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         dz = np.random.uniform(low[2], high[2])
         self.desired =  np.array([dx, dy, dz])
 
-    def compute_her_reward_np(self, observation, action, next_observation, goal):
+    def compute_her_reward_np(self, observation, action, next_observation):
         '''
         this shouldn't be used either
         :param observation:
@@ -802,11 +638,10 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         :param goal:
         :return:
         '''
-        return -np.linalg.norm(next_observation[21:24] - goal)
+        return 0
 
-    def reset(self, vae_reset=False):
+    def reset(self):
         self.in_reset = True
-        # self._safe_move_to_neutral()
         self.thresh = False
         self._joint_act(self.reset_position  - self._end_effector_pose()[:3])
         self.in_reset = False
@@ -833,20 +668,7 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         angles = self.request_ik_angles(target_ee_pos, self._joint_angles())
         self.send_angle_action(angles)
 
-    def _get_observation(self):
-        angles = self._joint_angles()
-        _, velocities, torques, _ = self.request_observation()
-        velocities = np.array(velocities)
-        torques = np.array(torques)
-        endpoint_pose = self._end_effector_pose()
 
-        temp = np.hstack((
-            angles,
-            velocities,
-            torques,
-            endpoint_pose,
-        ))
-        return temp
 
     def step(self, action):
         self._act(action)
@@ -854,35 +676,8 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
         reward = self.reward() * self.reward_magnitude
         done = False
         info = {}
-        #info['cartesian_goal'] = self.desired.copy()
-        #pos = np.array(observation[21:24])
-        #info['distance_to_goal'] = np.linalg.norm(pos - self.desired)
-        if self.img_observation:
-            observation = self.get_image()
         return observation, reward, done, info
 
 
     def _get_statistics_from_paths(self, paths):
-        # statistics = OrderedDict()
-        # stat_prefix = 'Test'
-        # #distances_from_target = np.array([path['distance_to_goal'] for path in paths]).flatten()
-        # distances_from_target = []
-        # final_position_distances = []
-        # for path in paths:
-        #     distances_from_target += [p['distance_to_goal'] for p in path['env_infos']]
-        #     final_position_distances += [[p['distance_to_goal'] for p in path['env_infos']][-1]]
-        # final_position_distances = np.array(final_position_distances)
-        # distances_from_target = np.array(distances_from_target)
-        # statistics.update(self._update_statistics_with_observation(
-        #     distances_from_target,
-        #     stat_prefix,
-        #     'End Effector Distance from Target'
-        # ))
-        #
-        # statistics.update(self._update_statistics_with_observation(
-        #     final_position_distances,
-        #     stat_prefix,
-        #     'Final End Effector Distance from Target'
-        # ))
-
         return OrderedDict()
