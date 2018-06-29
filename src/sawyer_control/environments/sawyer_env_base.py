@@ -77,7 +77,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
             action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
         else:
             action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
-        print(action)
+
         self.send_action(action)
         self.rate.sleep()
 
