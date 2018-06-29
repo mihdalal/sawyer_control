@@ -92,7 +92,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _get_endeffector_pose(self):
         _, _, endpoint_pose = self.request_observation()
-        return endpoint_pose
+        return endpoint_pose[:3]
 
     def compute_angle_difference(self, angles1, angles2):
         deltas = np.abs(angles1 - angles2)
@@ -102,7 +102,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_rewards(action, observation, self._state_goal)
+        reward = self.compute_reward(action, self.convert_obs_to_goals(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -151,8 +151,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
-        if not self.fix_goal:
-            self._state_goal = self.sample_goal()
+        self._state_goal = self.sample_goal()
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -364,7 +363,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def sample_goals(self, batch_size):
         if self.fix_goal:
             goals = np.repeat(
-                self.fixed_goal.copy()[None],
+                self._state_goal.copy()[None],
                 batch_size,
                 0
             )

@@ -34,15 +34,14 @@ class MultitaskEnv(metaclass=abc.ABCMeta):
         pass
 
     def sample_goal(self):
-        goals = self.sample_goals(1)
-        return self.unbatchify_dict(goals, 0)
+        goals = self.sample_goals(1)[0]
+        return goals
 
-    def compute_reward(self, action, obs):
+    def compute_reward(self, action, obs, goal):
         actions = action[None]
-        next_obs = {
-            k: v[None] for k, v in obs.items()
-        }
-        return self.compute_rewards(actions, next_obs)[0]
+        obs = obs[None]
+        goal = goal[None]
+        return self.compute_rewards(actions, obs, goal)[0]
 
     def get_diagnostics(self, *args, **kwargs):
         """
@@ -61,26 +60,5 @@ class MultitaskEnv(metaclass=abc.ABCMeta):
         """
         return OrderedDict()
 
-    @staticmethod
-    def unbatchify_dict(batch_dict, i):
-        """
-        :param batch_dict: A batch dict is a dict whose values are batch.
-        :return: the dictionary returns a dict whose values are just elements of
-        the batch.
-        """
-        new_d = {}
-        for k in batch_dict.keys():
-            new_d[k] = batch_dict[k][i]
-        return new_d
-
-    @staticmethod
-    def batchify_dict(batch_dict, i):
-        """
-        :param batch_dict: A batch dict is a dict whose values are batch.
-        :return: the dictionary returns a dict whose values are just elements of
-        the batch.
-        """
-        new_d = {}
-        for k in batch_dict.keys():
-            new_d[k] = batch_dict[k][i]
-        return new_d
+    def convert_obs_to_goals(self, obs):
+        raise NotImplementedError()
