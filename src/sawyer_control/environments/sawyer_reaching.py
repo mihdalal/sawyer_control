@@ -1,11 +1,12 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.environments.sawyer_env_base import SawyerBaseEnv
+from sawyer_control.environments.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
-from sawyer_control.core.env_util import get_stat_in_paths, \
-    create_stats_ordered_dict, get_asset_full_path
+from sawyer_control.core.eval_util import get_stat_in_paths, \
+    create_stats_ordered_dict
+from sawyer_control.core.multitask_env import MultitaskEnv
 
-class SawyerXYZReachingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
+class SawyerXYZReacher(SawyerEnvBase, MultitaskEnv):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
@@ -14,7 +15,7 @@ class SawyerXYZReachingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
                  ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
-        SawyerBaseEnv.__init__(self, **kwargs)
+        SawyerEnvBase.__init__(self, **kwargs)
         self.goal_space = self.config.POSITION_SAFETY_BOX
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
@@ -58,3 +59,6 @@ class SawyerXYZReachingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
                 [s[-1] for s in stat],
                 always_show_all_stats=True,
                 ))
+
+    def set_to_goal(self, goal):
+        raise NotImplementedError()

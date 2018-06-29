@@ -2,7 +2,7 @@ from collections import OrderedDict
 from numbers import Number
 
 import numpy as np
-''' taken vitchyr/multiworld'''
+''' taken from vitchyr/multiworld'''
 
 def create_stats_ordered_dict(
         name,
