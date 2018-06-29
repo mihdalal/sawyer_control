@@ -57,7 +57,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
         self.send_angle_action(angles)
 
     def _torque_act(self, action):
-        action = action *10
         if self.use_safety_box:
             if self.in_reset:
                 safety_box = self.config.RESET_SAFETY_BOX
@@ -78,6 +77,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
             action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
         else:
             action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
+        print(action)
         self.send_action(action)
         self.rate.sleep()
 
@@ -108,7 +108,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
     def _get_obs(self):
         angles, velocities, endpoint_pose = self.request_observation()
         obs = np.hstack((
-            angles,
+            self._wrap_angles(angles),
             velocities,
             endpoint_pose,
         ))
@@ -131,7 +131,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
         for i in range(self.config.RESET_LENGTH):
             cur_pos, cur_vel, _ = self.request_observation()
             torques = self.AnglePDController._compute_pd_forces(cur_pos, cur_vel)
-            print(torques)
             self._torque_act(torques)
             if self._reset_complete():
                 break
@@ -350,7 +349,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
 
             return (
                 resp.joint_angles
-            ) #TODO: why is this in a tuple? can this be removed?
+            )
         except rospy.ServiceException as e:
             print(e)
 

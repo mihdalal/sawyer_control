@@ -37,9 +37,6 @@ class AnglePDController(object):
             self._springs[joint] = 30
             self._damping[joint] = 4
 
-    def _set_des_pos(self, des_angles_dict):
-        self._des_angles = des_angles_dict
-
     def adjust_springs(self):
         for joint in list(self._des_angles.keys()):
             t_delta = rospy.get_time() - self.t_release

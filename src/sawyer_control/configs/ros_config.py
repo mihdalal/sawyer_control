@@ -30,6 +30,5 @@ RESET_ANGLES = np.array(
      0.5682295,
      4.70658493
      ]
-
 )
 RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
