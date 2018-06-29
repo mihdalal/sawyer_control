@@ -11,8 +11,9 @@ from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.msg import actions
+import abc
 
-class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
+class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
             self,
             action_mode='torque',
@@ -115,8 +116,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
         ))
         return obs
 
+    @abc.abstractmethod
     def compute_rewards(self, actions, obs, goals):
-        raise NotImplementedError()
+        pass
     
     def _get_info(self):
         return dict()
@@ -256,8 +258,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
                 z = np.abs(curr_z - safety_box.low[2])
         return np.linalg.norm([x, y, z])
 
+    @abc.abstractmethod
     def get_diagnostics(self, paths, prefix=''):
-        raise NotImplementedError()
+        pass
 
     @property
     def action_space(self):
@@ -373,11 +376,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
             )
         return goals
 
+    @abc.abstractmethod
     def set_to_goal(self, goal):
-        raise NotImplementedError()
-
-    def get_env_state(self):
-        raise NotImplementedError()
-
-    def set_env_state(self, state):
-        raise NotImplementedError()
+        pass
