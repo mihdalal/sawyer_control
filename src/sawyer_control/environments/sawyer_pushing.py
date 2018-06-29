@@ -7,6 +7,7 @@ class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
                  pause_on_reset=False,
                  **kwargs
                  ):
+        #TODO: MODIFY TO USE SAWYERENVBASE
         Serializable.quick_init(self, locals())
         SawyerEnv.__init__(self, **kwargs)
         MultitaskEnv.__init__(self, **kwargs)
