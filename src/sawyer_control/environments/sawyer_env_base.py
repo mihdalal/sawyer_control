@@ -23,6 +23,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
             fix_goal=False,
     ):
         Serializable.quick_init(self, locals())
+        MultitaskEnv.__init__(self)
         self.config = config
         self.init_rospy(self.config.UPDATE_HZ)
         self.action_mode = action_mode
@@ -115,14 +116,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv):
         return obs
 
     def compute_rewards(self, actions, obs, goals):
-        distances = np.linalg.norm(obs - goals, axis=1)
-        if self.reward_type == 'hand_distance':
-            r = -distances
-        elif self.reward_type == 'hand_success':
-            r = -(distances < self.indicator_threshold).astype(float)
-        else:
-            raise NotImplementedError("Invalid/no reward type.")
-        return r
+        raise NotImplementedError()
     
     def _get_info(self):
         return dict()

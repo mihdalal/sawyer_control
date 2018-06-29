@@ -1,8 +1,7 @@
 import abc
 from collections import OrderedDict
-import numpy as np
 
-''' Copied from vitchyr/multiworld '''
+''' Taken from vitchyr/multiworld '''
 
 class MultitaskEnv(metaclass=abc.ABCMeta):
     @abc.abstractmethod
