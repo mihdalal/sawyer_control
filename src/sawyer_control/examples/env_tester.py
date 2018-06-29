@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-from sawyer_control.environments.sawyer_reaching import SawyerXYZReacher
+from sawyer_control.environments.sawyer_reaching import SawyerReachXYZEnv
 import numpy as np
-env = SawyerXYZReacher(fix_goal=True)
+env = SawyerReachXYZEnv()
 env.reset()
 while True:
     env.step(np.zeros(7))

@@ -18,7 +18,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self,
             action_mode='torque',
             use_safety_box=True,
-            torque_action_scale=1,
+            torque_action_scale=5,
             position_action_scale=1/10,
             config = base_config,
             fix_goal=False,
@@ -360,6 +360,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def get_goal(self):
         return self._state_goal
 
+    def set_goal(self, goal):
+        self._state_goal = goal
+
     def sample_goals(self, batch_size):
         if self.fix_goal:
             goals = np.repeat(
@@ -378,3 +381,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def set_to_goal(self, goal):
         pass
+
+#Temporary function:
+#TODO: DELETE THIS ONCE WE SWITCH TO MULTIWORLD
+    def sample_goal_for_rollout(self):
+        return self.sample_goal()
+
