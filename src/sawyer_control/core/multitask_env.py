@@ -60,5 +60,9 @@ class MultitaskEnv(metaclass=abc.ABCMeta):
         """
         return OrderedDict()
 
+    def convert_ob_to_goal(self, obs):
+        obs = obs[None]
+        return self.convert_obs_to_goals(obs)[0]
+
     def convert_obs_to_goals(self, obs):
         raise NotImplementedError()

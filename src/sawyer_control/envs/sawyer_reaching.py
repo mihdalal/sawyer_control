@@ -16,17 +16,19 @@ class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
         SawyerEnvBase.__init__(self, **kwargs)
-        self.goal_space = self.config.POSITION_SAFETY_BOX
+        if self.action_mode=='torque':
+            self.goal_space = self.config.TORQUE_SAFETY_BOX
+        else:
+            self.goal_space = self.config.POSITION_SAFETY_BOX
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
-        self._state_goal = self.fixed_goal = np.array(fixed_goal)
+        self._state_goal = np.array(fixed_goal)
 
     @property
     def goal_dim(self):
         return 3
 
     def compute_rewards(self, actions, obs, goals):
-
         distances = np.linalg.norm(obs - goals, axis=1)
         if self.reward_type == 'hand_distance':
             r = -distances
@@ -61,9 +63,10 @@ class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
                 [s[-1] for s in stat],
                 always_show_all_stats=True,
                 ))
+        return statistics
 
     def set_to_goal(self, goal):
         raise NotImplementedError()
 
     def convert_obs_to_goals(self, obs):
-        return obs[-3:]
+        return obs[:, -3:]

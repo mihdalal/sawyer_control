@@ -18,7 +18,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self,
             action_mode='torque',
             use_safety_box=True,
-            torque_action_scale=5,
+            torque_action_scale=1,
             position_action_scale=1/10,
             config = base_config,
             fix_goal=False,
@@ -102,7 +102,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_reward(action, self.convert_obs_to_goals(observation), self._state_goal)
+        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -382,8 +382,10 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def set_to_goal(self, goal):
         pass
 
-#Temporary function:
-#TODO: DELETE THIS ONCE WE SWITCH TO MULTIWORLD
+#Temporary functions:
+#TODO: DELETE THESE ONCE WE SWITCH TO MULTIWORLD
     def sample_goal_for_rollout(self):
         return self.sample_goal()
 
+    def compute_her_reward_np(self, ob, action, next_ob, goal, infos):
+        return self.compute_reward(action, self.convert_ob_to_goal(next_ob), goal)
