@@ -5,7 +5,7 @@ from gym.spaces import Box
 from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.multitask_env import MultitaskEnv
-from sawyer_control.configs import base_config
+from sawyer_control.configs import config as config
 from sawyer_control.srv import observation
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
@@ -20,12 +20,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             use_safety_box=True,
             torque_action_scale=1,
             position_action_scale=1/10,
-            config = base_config,
+            config_name = 'base_config',
             fix_goal=False,
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
-        self.config = config
+        self.config = config[config_name]
         self.init_rospy(self.config.UPDATE_HZ)
         self.action_mode = action_mode
 
