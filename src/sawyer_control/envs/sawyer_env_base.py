@@ -265,22 +265,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def get_diagnostics(self, paths, prefix=''):
         pass
 
-    @property
-    def action_space(self):
-        return self._action_space
-
-    @property
-    def observation_space(self):
-        return self._observation_space
-    
     def _set_action_space(self):
         if self.action_mode == 'position':
-            self._action_space = Box(
+            self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
             )
         else:
-            self._action_space = Box(
+            self.action_space = Box(
                 self.config.JOINT_TORQUE_LOW,
                 self.config.JOINT_TORQUE_HIGH
             )
@@ -298,7 +290,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
             self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
-        self._observation_space = Box(
+        self.observation_space = Box(
             lows,
             highs,
         )
