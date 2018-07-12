@@ -41,6 +41,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self._state_goal = None
         self.fix_goal = fix_goal
 
+
     def _act(self, action):
         if self.action_mode == 'position':
             self._position_act(action * self.position_action_scale)
@@ -147,10 +148,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         is_within_threshold = (errors < self.config.RESET_ERROR_THRESHOLD).all()
         return is_within_threshold
 
-    def reset(self):
+    def _reset_robot(self):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
+
+    def reset(self):
+        self._reset_robot()
         self._state_goal = self.sample_goal()
         return self._get_obs()
 
