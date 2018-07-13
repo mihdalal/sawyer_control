@@ -5,11 +5,12 @@ from gym.spaces import Box
 from sawyer_control.pd_controllers.joint_angle_pd_controller import AnglePDController
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.multitask_env import MultitaskEnv
-from sawyer_control.configs import base_config
+from sawyer_control.configs.config import config_dict as config
 from sawyer_control.srv import observation
 from sawyer_control.srv import getRobotPoseAndJacobian
 from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
+from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
 
@@ -20,12 +21,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             use_safety_box=True,
             torque_action_scale=1,
             position_action_scale=1/10,
-            config = base_config,
+            config_name = 'base_config',
             fix_goal=False,
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
-        self.config = config
+        self.config = config[config_name]
         self.init_rospy(self.config.UPDATE_HZ)
         self.action_mode = action_mode
 
@@ -38,8 +39,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
         self.in_reset = True
-        self._state_goal = None
+        self._goal = None
         self.fix_goal = fix_goal
+
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -79,7 +81,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
         else:
             action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
-
+        print(action)
         self.send_action(action)
         self.rate.sleep()
 
@@ -92,7 +94,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _get_endeffector_pose(self):
         _, _, endpoint_pose = self.request_observation()
-        return endpoint_pose
+        return endpoint_pose[:3]
 
     def compute_angle_difference(self, angles1, angles2):
         deltas = np.abs(angles1 - angles2)
@@ -102,7 +104,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_rewards(action, observation, self._state_goal)
+        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -147,12 +149,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         is_within_threshold = (errors < self.config.RESET_ERROR_THRESHOLD).all()
         return is_within_threshold
 
-    def reset(self):
+    def _reset_robot(self):
         self.in_reset = True
         self._safe_move_to_neutral()
         self.in_reset = False
-        if not self.fix_goal:
-            self._state_goal = self.sample_goal()
+
+    def reset(self):
+        self._reset_robot()
+        self._goal = self.sample_goal()
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -262,22 +266,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def get_diagnostics(self, paths, prefix=''):
         pass
 
-    @property
-    def action_space(self):
-        return self._action_space
-
-    @property
-    def observation_space(self):
-        return self._observation_space
-    
     def _set_action_space(self):
         if self.action_mode == 'position':
-            self._action_space = Box(
+            self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
             )
         else:
-            self._action_space = Box(
+            self.action_space = Box(
                 self.config.JOINT_TORQUE_LOW,
                 self.config.JOINT_TORQUE_HIGH
             )
@@ -295,7 +291,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
             self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
-        self._observation_space = Box(
+        self.observation_space = Box(
             lows,
             highs,
         )
@@ -314,6 +310,58 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def send_angle_action(self, action):
         self.request_angle_action(action)
+
+    def request_image(self):
+        rospy.wait_for_service('images')
+        try:
+            request = rospy.ServiceProxy('images', image, persistent=True)
+            obs = request()
+            return (
+                    obs.image
+            )
+        except rospy.ServiceException as e:
+            print(e)
+
+    def get_image(self, color_format='BGR', image_layout='CHW', flatten=True):
+        """
+        :param color_format: `BGR` or `RGB` describing the order of blue,
+            green, and red color channels
+        :param image_layout: `CHW` or `HWC` describing order of height, width,
+            and channels axes
+        :param flatten: whether to flatten the image
+        """
+        # get image from server in BGR format
+        image = self.request_image()
+        if image is None:
+            raise Exception('Unable to get image from image server')
+        image = np.asarray(image).reshape(84, 84, 3)
+        image = image / 255.0
+
+        # convert color format
+        if color_format == 'BGR':
+            pass
+        elif color_format == 'RGB':
+            image = image[:,:,[2,1,0]]
+        else:
+            raise NotImplementedError(
+                '{} color format not supported.'.format(color_format)
+            )
+
+        # convert image layout
+        if image_layout == 'HWC':
+            pass
+        elif image_layout == 'CHW':
+            image = image.transpose()
+        else:
+            raise NotImplementedError(
+                '{} image layout not supported.'.format(image_layout)
+            )
+
+        # flatten image if necessary
+        if flatten:
+            image = image.flatten()
+
+        return image
 
     def request_observation(self):
         rospy.wait_for_service('observations')
@@ -356,15 +404,18 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     @property
     def goal_dim(self):
-        return 3
+        raise NotImplementedError()
 
     def get_goal(self):
-        return self._state_goal
+        return self._goal
+
+    def set_goal(self, goal):
+        self._goal = goal
 
     def sample_goals(self, batch_size):
         if self.fix_goal:
             goals = np.repeat(
-                self.fixed_goal.copy()[None],
+                self._goal.copy()[None],
                 batch_size,
                 0
             )
@@ -379,3 +430,11 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def set_to_goal(self, goal):
         pass
+
+#Temporary functions:
+#TODO: DELETE THESE ONCE WE SWITCH TO MULTIWORLD
+    def sample_goal_for_rollout(self):
+        return self.sample_goal()
+
+    def compute_her_reward_np(self, ob, action, next_ob, goal, infos):
+        return self.compute_reward(action, self.convert_ob_to_goal(next_ob), goal)

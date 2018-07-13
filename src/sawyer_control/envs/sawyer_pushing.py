@@ -1,25 +1,25 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.environments.sawyer_env_base import SawyerBaseEnv
+from sawyer_control.envs.sawyer_env_base import SawyerEnvBaseImage
 from sawyer_control.core.serializable import Serializable
-from sawyer_control.core.env_util import get_stat_in_paths, \
-    create_stats_ordered_dict, get_asset_full_path
+from sawyer_control.core.eval_util import get_stat_in_paths, \
+    create_stats_ordered_dict
 
-class SawyerXYZPushingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
+class SawyerXYPushingImgMultitaskEnv(SawyerEnvBaseImage):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
                  reward_type='hand_distance',
                  pause_on_reset=True,
+                 action_mode='position',
                  **kwargs
-                 ):
+                ):
         Serializable.quick_init(self, locals())
-        MultitaskEnv.__init__(self)
-        SawyerBaseEnv.__init__(self, **kwargs)
+        SawyerEnvBaseImage.__init__(self, action_mode=action_mode, **kwargs)
         self.goal_space = self.config.POSITION_SAFETY_BOX
         self.indicator_threshold = indicator_threshold
         self.reward_type = reward_type
-        self.desired = None
+        self._goal = None
         self.action_mode = 'position'
 
     @property
@@ -34,29 +34,16 @@ class SawyerXYZPushingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
         ee_goal = np.concatenate((goal[2:4], [self.z]))
         #PAUSE FOR INPUT:
         self.thresh=False
-        self._joint_act(obj_goal-self._end_effector_pose()[:3])
+        self._position_act(obj_goal-self._end_effector_pose()[:3])
         input()
-        self._joint_act(ee_goal - self._end_effector_pose()[:3])
+        self._position_act(ee_goal - self._end_effector_pose()[:3])
         print('setting ee')
         input()
         #PAUSE FOR INPUT
         #PLACE OBJECT AT GOAL POSITION
         #MOVES ROBOT ARM TO GOAL POSITION:
-        self.desired = self._get_observation()
+        self._goal = self._get_obs()
         self.thresh = True
-
-
-
-    def compute_her_reward_np(self, observation, action, next_observation, goal):
-        '''
-        this shouldn't be used either
-        :param observation:
-        :param action:
-        :param next_observation:
-        :param goal:
-        :return:
-        '''
-        return 0
 
     def reset(self):
         self.thresh = False
@@ -69,10 +56,5 @@ class SawyerXYZPushingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
         observation = self._get_observation()
         return observation
 
-    def _get_info(self):
-        return None
-
-
-
-    def get_diagnostics(self, paths):
+    def get_diagnostics(self, paths, prefix=''):
         return OrderedDict()
