@@ -404,7 +404,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     @property
     def goal_dim(self):
-        return 3
+        raise NotImplementedError()
 
     def get_goal(self):
         return self._goal
