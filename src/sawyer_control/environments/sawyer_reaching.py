@@ -19,6 +19,12 @@ class SawyerXYZReachingMultitaskEnv(SawyerBaseEnv, MultitaskEnv):
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
 
+
+
+
+
+
+
     @property
     def goal_dim(self):
         return 3
