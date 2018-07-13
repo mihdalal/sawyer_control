@@ -1,4 +1,12 @@
-class SawyerXYPushingImgMultitaskEnv(SawyerEnv, MultitaskEnv):
+from collections import OrderedDict
+import numpy as np
+from sawyer_control.envs.sawyer_env_base import SawyerEnvBaseImage
+from sawyer_control.core.serializable import Serializable
+from sawyer_control.core.eval_util import get_stat_in_paths, \
+    create_stats_ordered_dict
+from sawyer_control.core.multitask_env import MultitaskEnv
+
+class SawyerXYPushingImgMultitaskEnv(SawyerEnvBaseImage, MultitaskEnv):
 
     def __init__(self,
                  desired = None,

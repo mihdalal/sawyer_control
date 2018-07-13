@@ -4,9 +4,8 @@ from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
     create_stats_ordered_dict
-from sawyer_control.core.multitask_env import MultitaskEnv
 
-class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
+class SawyerReachXYZEnv(SawyerEnvBase):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
@@ -14,7 +13,6 @@ class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
-        MultitaskEnv.__init__(self)
         SawyerEnvBase.__init__(self, **kwargs)
         if self.action_mode=='torque':
             self.goal_space = self.config.TORQUE_SAFETY_BOX
@@ -22,7 +20,7 @@ class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
             self.goal_space = self.config.POSITION_SAFETY_BOX
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
-        self._state_goal = np.array(fixed_goal)
+        self._goal = np.array(fixed_goal)
 
     @property
     def goal_dim(self):
@@ -39,7 +37,7 @@ class SawyerReachXYZEnv(SawyerEnvBase, MultitaskEnv):
         return r
 
     def _get_info(self):
-        hand_distance = np.linalg.norm(self._state_goal - self._get_endeffector_pose())
+        hand_distance = np.linalg.norm(self._goal - self._get_endeffector_pose())
         return dict(
             hand_distance=hand_distance,
             hand_success=(hand_distance<self.indicator_threshold).astype(float)

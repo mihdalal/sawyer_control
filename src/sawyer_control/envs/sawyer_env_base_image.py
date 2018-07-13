@@ -12,104 +12,31 @@ from sawyer_control.srv import ik
 from sawyer_control.srv import angle_action
 from sawyer_control.msg import actions
 import abc
+from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 
-class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
+class SawyerEnvBaseImage(SawyerEnvBase):
     def __init__(
             self,
-            action_mode='torque',
-            use_safety_box=True,
-            torque_action_scale=1,
-            position_action_scale=1/10,
-            config_name = 'base_config',
-            fix_goal=False,
+            img_length=84,
+            num_channels=3,
+            **kwargs
     ):
         Serializable.quick_init(self, locals())
-        MultitaskEnv.__init__(self)
-        self.config = config[config_name]
-        self.init_rospy(self.config.UPDATE_HZ)
-        self.action_mode = action_mode
-
-        self.use_safety_box = use_safety_box
-        self.AnglePDController = AnglePDController(config=self.config)
-
-        self._set_action_space()
-        self._set_observation_space()
-        self.get_latest_pose_jacobian_dict()
-        self.torque_action_scale = torque_action_scale
-        self.position_action_scale = position_action_scale
-        self.in_reset = True
-        self._goal = None
-        self.fix_goal = fix_goal
-
-
-    def _act(self, action):
-        if self.action_mode == 'position':
-            self._position_act(action * self.position_action_scale)
-        else:
-            self._torque_act(action*self.torque_action_scale)
-        return
-
-    def _position_act(self, action):
-        ee_pos = self._get_endeffector_pose()
-        endeffector_pos = ee_pos[:3]
-        endeffector_angles = ee_pos[3:]
-        target_ee_pos = (endeffector_pos + action)
-        target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
-        target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
-        angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
-        self.send_angle_action(angles)
-
-    def _torque_act(self, action):
-        if self.use_safety_box:
-            if self.in_reset:
-                safety_box = self.config.RESET_SAFETY_BOX
-            else:
-                safety_box = self.config.TORQUE_SAFETY_BOX
-            self.get_latest_pose_jacobian_dict()
-            pose_jacobian_dict_of_joints_not_in_box = self.get_pose_jacobian_dict_of_joints_not_in_box(safety_box)
-            if len(pose_jacobian_dict_of_joints_not_in_box) > 0:
-                forces_dict = self._get_adjustment_forces_per_joint_dict(pose_jacobian_dict_of_joints_not_in_box, safety_box)
-                torques = np.zeros(7)
-                for joint in forces_dict:
-                    jacobian = pose_jacobian_dict_of_joints_not_in_box[joint][1]
-                    force = forces_dict[joint]
-                    torques = torques + np.dot(jacobian.T, force).T
-                torques[-1] = 0 #we don't need to move the wrist
-                action = torques
-        if self.in_reset:
-            action = np.clip(action, self.config.RESET_TORQUE_LOW, self.config.RESET_TORQUE_HIGH)
-        else:
-            action = np.clip(np.asarray(action), self.config.JOINT_TORQUE_LOW, self.config.JOINT_TORQUE_HIGH)
-        print(action)
-        self.send_action(action)
-        self.rate.sleep()
-
-    def _wrap_angles(self, angles):
-        return angles % (2*np.pi)
-
-    def _get_joint_angles(self):
-        angles, _, _= self.request_observation()
-        return angles
-
-    def _get_endeffector_pose(self):
-        _, _, endpoint_pose = self.request_observation()
-        return endpoint_pose[:3]
-
-    def compute_angle_difference(self, angles1, angles2):
-        deltas = np.abs(angles1 - angles2)
-        differences = np.minimum(2 * np.pi - deltas, deltas)
-        return differences
+        super().__init__(**kwargs)
+        self.img_length=img_length
+        self.num_channels=num_channels
+        #todo: set observation space correctly
 
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._goal)
+        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
     
     def _get_obs(self):
-        angles, velocities, endpoint_pose = self.request_observation()
+        angles, velocities, endpoint_pose = self.request_image()
         obs = np.hstack((
             self._wrap_angles(angles),
             velocities,
@@ -155,7 +82,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def reset(self):
         self._reset_robot()
-        self._goal = self.sample_goal()
+        self._state_goal = self.sample_goal()
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -354,15 +281,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         return 3
 
     def get_goal(self):
-        return self._goal
+        return self._state_goal
 
     def set_goal(self, goal):
-        self._goal = goal
+        self._state_goal = goal
 
     def sample_goals(self, batch_size):
         if self.fix_goal:
             goals = np.repeat(
-                self._goal.copy()[None],
+                self._state_goal.copy()[None],
                 batch_size,
                 0
             )
