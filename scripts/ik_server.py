@@ -23,7 +23,6 @@ def compute_joint_angle(req):
     reset_angles = ros_config.RESET_JOINT_ANGLES
     ik_angles = get_joint_angles(pose, reset_angles, True)
     ik_angles = [ik_angles[joint] for joint in joint_names]
-    print(ik_angles)
     return ikResponse(ik_angles)
 
 def inverse_kinematics_server():
