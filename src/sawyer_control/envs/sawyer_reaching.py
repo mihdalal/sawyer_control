@@ -20,7 +20,7 @@ class SawyerReachXYZEnv(SawyerEnvBase):
             self.goal_space = self.config.POSITION_SAFETY_BOX
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
-        self._goal = np.array(fixed_goal)
+        self._state_goal = np.array(fixed_goal)
 
     @property
     def goal_dim(self):
@@ -37,7 +37,7 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return r
 
     def _get_info(self):
-        hand_distance = np.linalg.norm(self._goal - self._get_endeffector_pose())
+        hand_distance = np.linalg.norm(self._state_goal - self._get_endeffector_pose())
         return dict(
             hand_distance=hand_distance,
             hand_success=(hand_distance<self.indicator_threshold).astype(float)

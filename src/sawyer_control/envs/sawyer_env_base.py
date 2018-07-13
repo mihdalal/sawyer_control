@@ -39,7 +39,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
         self.in_reset = True
-        self._goal = None
+        self._state_goal = None
         self.fix_goal = fix_goal
 
 
@@ -104,7 +104,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._goal)
+        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -156,7 +156,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def reset(self):
         self._reset_robot()
-        self._goal = self.sample_goal()
+        self._state_goal = self.sample_goal()
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -407,15 +407,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def get_goal(self):
-        return self._goal
+        return self._state_goal
 
     def set_goal(self, goal):
-        self._goal = goal
+        self._state_goal = goal
 
     def sample_goals(self, batch_size):
         if self.fix_goal:
             goals = np.repeat(
-                self._goal.copy()[None],
+                self._state_goal.copy()[None],
                 batch_size,
                 0
             )

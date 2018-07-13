@@ -1,26 +1,25 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.envs.sawyer_env_base_image import SawyerEnvBaseImage
+from gym.spaces import Box
+from sawyer_control.envs.sawyer_env import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 
-class SawyerXYPushing(SawyerEnvBaseImage):
+class SawyerXYPushing(SawyerEnvBase):
+    ''' Must Wrap with Image Env to use!'''
     def __init__(self,
-                 fixed_goal=(1, 1, 1),
-                 indicator_threshold=.05,
-                 reward_type='hand_distance',
+                 fixed_goal=(1, 1, 1, 1),
                  pause_on_reset=True,
                  action_mode='position',
                  z=.23128,
                  **kwargs
                 ):
         Serializable.quick_init(self, locals())
-        SawyerEnvBaseImage.__init__(self, action_mode=action_mode, **kwargs)
-        self.goal_space = self.config.POSITION_SAFETY_BOX
-        self.indicator_threshold = indicator_threshold
-        self.reward_type = reward_type
-        self._goal = None
+        SawyerEnvBase.__init__(self, action_mode=action_mode, **kwargs)
+        lows = self.config.POSITION_SAFETY_BOX_LOWS[:2]
+        highs = self.config.POSITION_SAFETY_BOX_HIGHS[:2]
+        self.goal_space = Box(np.concatenate((lows, lows)), np.concatenate((highs, highs)))
+        self._state_goal = None
         self.pause_on_reset=pause_on_reset
-        self.z = z
 
     @property
     def goal_dim(self):
@@ -36,7 +35,6 @@ class SawyerXYPushing(SawyerEnvBaseImage):
         #MOVES ROBOT ARM TO GOAL POSITION:
         self._position_act(ee_goal - self._end_effector_pose()[:3])
         print('setting ee')
-        self._goal = self._get_obs()
 
     def _reset_robot(self):
         self._act(self.reset_position - self._end_effector_pose()[:3])
@@ -46,7 +44,7 @@ class SawyerXYPushing(SawyerEnvBaseImage):
 
     def reset(self):
         self._reset_robot()
-        self._goal = self.sample_goal()
+        self._state_goal = self.sample_goal()
         return self._get_obs()
 
     def get_diagnostics(self, paths, prefix=''):
