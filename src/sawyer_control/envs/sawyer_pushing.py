@@ -1,9 +1,9 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.envs.sawyer_env_base import SawyerEnvBaseImage
+from sawyer_control.envs.sawyer_env_base_image import SawyerEnvBaseImage
 from sawyer_control.core.serializable import Serializable
 
-class SawyerXYPushingImgMultitaskEnv(SawyerEnvBaseImage):
+class SawyerXYPushing(SawyerEnvBaseImage):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
