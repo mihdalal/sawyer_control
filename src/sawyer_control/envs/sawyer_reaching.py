@@ -63,8 +63,11 @@ class SawyerReachXYZEnv(SawyerEnvBase):
                 ))
         return statistics
 
-    def set_to_goal(self, goal):
-        raise NotImplementedError()
-
     def convert_obs_to_goals(self, obs):
         return obs[:, -3:]
+
+    def set_to_goal(self, goal):
+        if self.action_mode=='position':
+            self._position_act(goal - self._get_endeffector_pose()[:3])
+        else:
+            raise NotImplementedError()

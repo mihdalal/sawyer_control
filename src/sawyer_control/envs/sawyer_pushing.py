@@ -55,9 +55,4 @@ class SawyerPushXYEnv(SawyerEnvBase):
     def compute_rewards(self, actions, obs, goals):
         pass
 
-    ''' Image Env Functions '''
-    def get_env_state(self):
-        return self._get_joint_angles()
 
-    def set_env_state(self, angles):
-        self.send_angle_action(angles)

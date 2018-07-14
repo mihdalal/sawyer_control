@@ -430,6 +430,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def set_to_goal(self, goal):
         pass
 
+    ''' Image Env Functions '''
+
+    def get_env_state(self):
+        return self._get_joint_angles()
+
+    def set_env_state(self, angles):
+        self.send_angle_action(angles)
+
 #Temporary functions:
 #TODO: DELETE THESE ONCE WE SWITCH TO MULTIWORLD
     def sample_goal_for_rollout(self):
