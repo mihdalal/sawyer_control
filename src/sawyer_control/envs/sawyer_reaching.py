@@ -22,10 +22,6 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         self.reward_type = reward_type
         self._state_goal = np.array(fixed_goal)
 
-    @property
-    def goal_dim(self):
-        return 3
-
     def compute_rewards(self, actions, obs, goals):
         distances = np.linalg.norm(obs - goals, axis=1)
         if self.reward_type == 'hand_distance':
@@ -62,6 +58,14 @@ class SawyerReachXYZEnv(SawyerEnvBase):
                 always_show_all_stats=True,
                 ))
         return statistics
+
+    """
+    Multitask functions
+    """
+
+    @property
+    def goal_dim(self):
+        return 3
 
     def convert_obs_to_goals(self, obs):
         return obs[:, -3:]

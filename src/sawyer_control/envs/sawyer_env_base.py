@@ -430,7 +430,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def set_to_goal(self, goal):
         pass
 
-    ''' Image Env Functions '''
+    """
+    Image Env Functions
+    """
 
     def get_env_state(self):
         return self._get_joint_angles()
