@@ -1,10 +1,10 @@
 from collections import OrderedDict
 import numpy as np
 from gym.spaces import Box
-from sawyer_control.envs.sawyer_env import SawyerEnvBase
+from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 
-class SawyerXYPushing(SawyerEnvBase):
+class SawyerPushXYEnv(SawyerEnvBase):
     ''' Must Wrap with Image Env to use!'''
     def __init__(self,
                  fixed_goal=(1, 1, 1, 1),
@@ -20,6 +20,7 @@ class SawyerXYPushing(SawyerEnvBase):
         self.goal_space = Box(np.concatenate((lows, lows)), np.concatenate((highs, highs)))
         self._state_goal = None
         self.pause_on_reset=pause_on_reset
+        self.z = z
 
     @property
     def goal_dim(self):
@@ -29,18 +30,19 @@ class SawyerXYPushing(SawyerEnvBase):
         print('moving arm to desired object goal')
         obj_goal = np.concatenate((goal[:2], [self.z]))
         ee_goal = np.concatenate((goal[2:4], [self.z]))
-        self._position_act(obj_goal-self._end_effector_pose()[:3])
-        input()
+        self._position_act(obj_goal-self._get_endeffector_pose()[:3])
         print('place object at end effector location and press enter')
+        input()
         #MOVES ROBOT ARM TO GOAL POSITION:
-        self._position_act(ee_goal - self._end_effector_pose()[:3])
-        print('setting ee')
+        self._position_act(ee_goal - self._get_endeffector_pose()[:3])
 
     def _reset_robot(self):
-        self._act(self.reset_position - self._end_effector_pose()[:3])
+        self.in_reset = True
+        self._safe_move_to_neutral()
+        self.in_reset = False
         if self.pause_on_reset:
-            input()
             print('move object to reset position and press enter')
+            input()
 
     def reset(self):
         self._reset_robot()
@@ -50,3 +52,12 @@ class SawyerXYPushing(SawyerEnvBase):
     def get_diagnostics(self, paths, prefix=''):
         return OrderedDict()
 
+    def compute_rewards(self, actions, obs, goals):
+        pass
+
+    ''' Image Env Functions '''
+    def get_env_state(self):
+        return self._get_joint_angles()
+
+    def set_env_state(self, angles):
+        self.send_angle_action(angles)
