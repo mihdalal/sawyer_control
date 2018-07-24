@@ -361,6 +361,11 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             image = image.flatten()
 
         return image
+    def get_visualized_image(self):
+        img = self.get_image()
+        img = img.reshape(3, 84, 84).transpose()*255
+        return img
+
 
     def request_observation(self):
         rospy.wait_for_service('observations')

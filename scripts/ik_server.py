@@ -11,7 +11,7 @@ joint_names = ros_config.JOINT_NAMES
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
-
+    #TODO add a fixed quaternion
     Q = Quaternion(
         x=ee_pos[3],
         y=ee_pos[4],
