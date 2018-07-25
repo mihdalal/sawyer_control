@@ -1,3 +1,4 @@
 float32[] angles
+bool joint_space_impd
 ---
 bool data

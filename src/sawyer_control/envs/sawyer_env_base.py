@@ -43,6 +43,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.fix_goal = fix_goal
 
 
+
     def _act(self, action):
         if self.action_mode == 'position':
             self._position_act(action * self.position_action_scale)
@@ -308,6 +309,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.action_publisher.publish(action)
 
     def send_angle_action(self, action):
+
         self.request_angle_action(action)
 
     def request_image(self):
@@ -379,7 +381,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            execute_action(angles)
+            impd = self.action_mode == "joint_space_impd"
+            execute_action(angles, impd)
             return None
         except rospy.ServiceException as e:
             print(e)
