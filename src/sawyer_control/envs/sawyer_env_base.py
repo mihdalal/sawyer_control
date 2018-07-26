@@ -14,7 +14,7 @@ from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
 
-class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
+class SawyerBaseEnv(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
             self,
             action_mode='torque',
@@ -321,51 +321,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def get_image(self, color_format='BGR', image_layout='CHW', flatten=True):
-        """
-        :param color_format: `BGR` or `RGB` describing the order of blue,
-            green, and red color channels
-        :param image_layout: `CHW` or `HWC` describing order of height, width,
-            and channels axes
-        :param flatten: whether to flatten the image
-        """
-        # get image from server in BGR format
+    def get_image(self):
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
         image = np.asarray(image).reshape(84, 84, 3)
-        image = image / 255.0
-
-        # convert color format
-        if color_format == 'BGR':
-            pass
-        elif color_format == 'RGB':
-            image = image[:,:,[2,1,0]]
-        else:
-            raise NotImplementedError(
-                '{} color format not supported.'.format(color_format)
-            )
-
-        # convert image layout
-        if image_layout == 'HWC':
-            pass
-        elif image_layout == 'CHW':
-            image = image.transpose()
-        else:
-            raise NotImplementedError(
-                '{} image layout not supported.'.format(image_layout)
-            )
-
-        # flatten image if necessary
-        if flatten:
-            image = image.flatten()
-
         return image
-    def get_visualized_image(self):
-        img = self.get_image()
-        img = img.reshape(3, 84, 84).transpose()*255
-        return img
-
 
     def request_observation(self):
         rospy.wait_for_service('observations')

@@ -27,9 +27,9 @@ class ImageEnv(ProxyEnv):
             self,
             wrapped_env,
             imsize=84,
-            transpose=False,
+            transpose=True,
             grayscale=False,
-            normalize=False,
+            normalize=True,
             reward_type='wrapped_env',
             threshold=10,
     ):
@@ -122,3 +122,4 @@ def normalize_image(image):
 def unormalize_image(image):
     assert image.dtype != np.uint8
     return np.uint8(image * 255.0)
+

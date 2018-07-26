@@ -1,11 +1,11 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
+from sawyer_control.envs.sawyer_env_base import SawyerBaseEnv
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
     create_stats_ordered_dict
 
-class SawyerReachXYZEnv(SawyerEnvBase):
+class SawyerReachXYZEnv(SawyerBaseEnv):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
@@ -13,7 +13,7 @@ class SawyerReachXYZEnv(SawyerEnvBase):
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
-        SawyerEnvBase.__init__(self, **kwargs)
+        SawyerBaseEnv.__init__(self, **kwargs)
         if self.action_mode=='torque':
             self.goal_space = self.config.TORQUE_SAFETY_BOX
         else:
@@ -71,7 +71,5 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return obs[:, -3:]
 
     def set_to_goal(self, goal):
-        if self.action_mode=='position':
-            self._position_act(goal - self._get_endeffector_pose()[:3])
-        else:
-            raise NotImplementedError()
+        self._position_act(goal - self._get_endeffector_pose()[:3])
+

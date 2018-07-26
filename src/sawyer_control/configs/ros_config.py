@@ -1,3 +1,4 @@
+from geometry_msgs.msg import Quaternion
 import numpy as np
 #JOINT_CONTROLLER_SETTINGS
 JOINT_POSITION_SPEED = .1
@@ -18,3 +19,10 @@ RESET_ANGLES = np.array(
      - 4.32617177e-04,  5.66576183e-01,  3.31357336e+00]
 )
 RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
+
+POSITION_CONTROL_EE_ORIENTATION=Quaternion(
+		x=0.70833379,
+		y=0.70586246,
+		z=-0.00452118,
+		w=-0.00097029,
+	)
