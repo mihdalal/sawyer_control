@@ -12,13 +12,12 @@ joint_names = ros_config.JOINT_NAMES
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
     #TODO add a fixed quaternion
-    Q = Quaternion(
-        x=ee_pos[3],
-        y=ee_pos[4],
-        z=ee_pos[5],
-        w=ee_pos[6],
-    )
-
+    Q=Quaternion(
+		x=0.70833379,
+		y=0.70586246,
+		z=-0.00452118,
+		w=-0.00097029,
+	)
     pose = get_pose_stamped(ee_pos[0], ee_pos[1], ee_pos[2], Q)
     reset_angles = ros_config.RESET_JOINT_ANGLES
     ik_angles = get_joint_angles(pose, reset_angles, True)
