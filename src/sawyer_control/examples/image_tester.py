@@ -1,8 +1,9 @@
 from sawyer_control.envs.sawyer_reaching import SawyerReachXYZEnv
 import cv2
-env = SawyerReachXYZEnv()
+
+from sawyer_control.core.image_env import ImageEnv
+
+env = ImageEnv(SawyerReachXYZEnv())
 env.reset()
 img = env.get_image()
-print(img.shape)
-cv2.imshow('env', image_obs)
-cv2.waitKey(1)
+cv2.imwrite("test.png", img)

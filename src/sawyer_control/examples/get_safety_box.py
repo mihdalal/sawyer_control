@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from sawyer_control.envs.sawyer_reaching import SawyerReachXYZEnv
-import numpy as np
 env = SawyerReachXYZEnv()
-print(env._get_endeffector_pose())
+for i in range(8):
+	input('move robot hand to corner of safety box')
+	print(env._get_endeffector_pose())
