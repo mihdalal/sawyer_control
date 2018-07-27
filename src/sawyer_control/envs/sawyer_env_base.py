@@ -406,6 +406,9 @@ class SawyerBaseEnv(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def set_env_state(self, angles):
         self.send_angle_action(angles)
 
+    def initialize_camera(self, init_fctn):
+        pass
+
 #Temporary functions:
 #TODO: DELETE THESE ONCE WE SWITCH TO MULTIWORLD
     def sample_goal_for_rollout(self):
