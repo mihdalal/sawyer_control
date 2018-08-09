@@ -1,0 +1,4 @@
+numpy==1.15.0
+pyyaml==3.13
+gym==0.10.5
+rospkg
