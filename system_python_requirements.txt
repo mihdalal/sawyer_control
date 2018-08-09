@@ -1,2 +1,5 @@
 imutils
 lxml
+imageio
+moviepy
+requests
