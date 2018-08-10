@@ -17,6 +17,7 @@
 12. run `conda create -n <env_name> python=3.5 anaconda`
 13. source activate your python 3 conda environment
 14. run `pip install -r python3_requirements.txt`
+15. install kinect2 bridge: https://github.com/code-iai/iai_kinect2/tree/master/kinect2_bridge
 
 Example Bashrc:
 ```
