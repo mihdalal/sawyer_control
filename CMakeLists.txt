@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   message_generation
 )
 
@@ -59,6 +60,7 @@ catkin_python_setup()
    getRobotPoseAndJacobian.srv
    observation.srv
    ik.srv
+   get_kinectdata.srv
    image.srv
    angle_action.srv
  )
@@ -74,6 +76,7 @@ catkin_python_setup()
  generate_messages(
    DEPENDENCIES
    std_msgs
+   sensor_msgs
  )
 
 ################################################
