@@ -7,25 +7,15 @@
 * Urdfdom: https://github.com/ros/urdfdom.git
 * urdf_parser_py: https://github.com/ros/urdf_parser_py
 * pykdl utils: https://github.com/gt-ros-pkg/hrl-kdl/tree/
-
-5, switch to the indigo-devel branch on all three repos
-
+5. switch to the indigo-devel branch on all three repos
 6.`git clone sawyer_control: https://github.com/mdalal2020/sawyer_control.git` in ~/catkin_ws/src/
-
 7. run `catkin_make`
-
 8. Make sure you are on system python
-
 9. run `pip install -r system_python_requirements.txt`
-
 10. install anaconda 2 (Do not install anaconda 3!) and type no when it asks you prepend the anaconda path to the bashrc
-
 11. manually add in the anaconda path to the bashrc (see example bashrc below)
-
 12. run `conda create -n <env_name> python=3.5 anaconda`
-
 13. source activate your python 3 conda environment
-
 14. run `pip install -r python3_requirements.txt`
 
 Example Bashrc:
