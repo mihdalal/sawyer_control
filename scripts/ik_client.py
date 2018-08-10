@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
 from sawyer_control.srv import ik
-import numpy as np
 joint_names = ['right_j0', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6']
 
 def request_joint_angles(ee_pos, joint_angles):

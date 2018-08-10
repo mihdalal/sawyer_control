@@ -3,9 +3,6 @@ from sawyer_control.srv import *
 import rospy
 import intera_interface as ii
 from sawyer_control.inverse_kinematics import *
-from geometry_msgs.msg import (
-    Quaternion,
-)
 from sawyer_control.configs import ros_config
 joint_names = ros_config.JOINT_NAMES
 
