@@ -60,8 +60,13 @@ def execute_action(action_msg):
     joint_space_impd = action_msg.joint_space_impd
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
+    duration = action_msg.duration
+    in_reset = action_msg.in_reset
+    if not in_reset:
+        duration = 0.5
+
     if joint_space_impd:
-        controller.move_with_impedance_sec(joint_to_values, duration=0.5)
+        controller.move_with_impedance_sec(joint_to_values, duration=duration)
     else:
         arm.move_to_joint_positions(joint_to_values)
     return angle_actionResponse(True)

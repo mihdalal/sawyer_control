@@ -1,4 +1,6 @@
 float32[] angles
 bool joint_space_impd
+float32 duration
+bool in_reset
 ---
 bool data

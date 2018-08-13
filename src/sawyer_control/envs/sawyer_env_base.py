@@ -23,14 +23,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             position_action_scale=1/10,
             config_name = 'base_config',
             fix_goal=False,
-            use_comp=False
+            use_comp=False,
+            max_speed = 0.05
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
         self.config = config[config_name]
         self.init_rospy(self.config.UPDATE_HZ)
         self.action_mode = action_mode
-
+        self.max_speed = max_speed
         self.use_safety_box = use_safety_box
         self.AnglePDController = AnglePDController(config=self.config)
 
@@ -162,11 +163,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.in_reset = False
 
     def reset(self):
+        self.in_reset = True
         if self.action_mode == "joint_space_impd" or self.action_mode == "position":
             self._position_act(self.reset_pos - self._get_endeffector_pose())
         else: 
             self._reset_robot()
         self._state_goal = self.sample_goal()
+        self.in_reset = False
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -388,12 +391,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             print(e)
 
     def request_angle_action(self, angles):
-
+        dist = np.linalg.norm(self._get_endeffector_pose() - self.reset_pos)
+        duration = dist/self.max_speed
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
             impd = self.action_mode == "joint_space_impd"
-            execute_action(angles, impd)
+            execute_action(angles, impd, duration, self.in_reset)
             return None
         except rospy.ServiceException as e:
             print(e)
