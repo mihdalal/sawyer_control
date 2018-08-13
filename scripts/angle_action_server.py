@@ -40,6 +40,7 @@ class JointController(object):
 
 
     def move_with_impedance_sec(self, cmd, duration=2.0):
+        print(cmd)
         jointnames = self._limb.joint_names()
         prev_joint = [self._limb.joint_angle(j) for j in jointnames]
         new_joint = np.array([cmd[j] for j in jointnames])
@@ -60,7 +61,7 @@ def execute_action(action_msg):
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
     if joint_space_impd:
-        controller.move_with_impedance_sec(joint_to_values, duration=0.35)
+        controller.move_with_impedance_sec(joint_to_values, duration=0.5)
     else:
         arm.move_to_joint_positions(joint_to_values)
     return angle_actionResponse(True)
@@ -70,16 +71,10 @@ def angle_action_server():
     global arm
     global controller
     arm = ii.Limb('right')
-    arm.set_joint_position_speed(0.3)
+    arm.set_joint_position_speed(0.1)
     controller = JointController(arm)
     s = rospy.Service('angle_action', angle_action, execute_action)
     rospy.spin()
-
-
-
-
-
-
 
 
 

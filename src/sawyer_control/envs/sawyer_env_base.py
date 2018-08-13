@@ -23,6 +23,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             position_action_scale=1/10,
             config_name = 'base_config',
             fix_goal=False,
+            use_comp=False
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
@@ -35,17 +36,19 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
         self._set_action_space()
         self._set_observation_space()
-        self.get_latest_pose_jacobian_dict()
+        #self.get_latest_pose_jacobian_dict()
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
         self.in_reset = True
         self._state_goal = None
         self.fix_goal = fix_goal
-
+        self.reset_pos = np.array([ 0.45, -0.05,  0.25471401])
+        self.prev_target = None
+        self.use_comp = use_comp
 
 
     def _act(self, action):
-        if self.action_mode == 'position':
+        if self.action_mode == 'position' or self.action_mode == 'joint_space_impd':
             self._position_act(action * self.position_action_scale)
         else:
             self._torque_act(action*self.torque_action_scale)
@@ -55,8 +58,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         ee_pos = self._get_endeffector_pose()
         endeffector_pos = ee_pos[:3]
         endeffector_angles = ee_pos[3:]
-        target_ee_pos = (endeffector_pos + action)
+        if self.prev_target is not None and self.use_comp:
+            target_ee_pos = self.prev_target + action
+        else:
+            target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
+        self.prev_target = target_ee_pos
         target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         self.send_angle_action(angles)
@@ -104,7 +111,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
+        reward = self.compute_reward(action, self.convert_obs_to_goals(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -155,7 +162,10 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.in_reset = False
 
     def reset(self):
-        self._reset_robot()
+        if self.action_mode == "joint_space_impd" or self.action_mode == "position":
+            self._position_act(self.reset_pos - self._get_endeffector_pose())
+        else: 
+            self._reset_robot()
         self._state_goal = self.sample_goal()
         return self._get_obs()
 
@@ -267,7 +277,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         pass
 
     def _set_action_space(self):
-        if self.action_mode == 'position':
+        if self.action_mode == 'position' or self.action_mode == 'joint_space_impd':
             self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
@@ -291,7 +301,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
             self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
-        self.observation_space = Box(
+        self.obs_space = Box(
             lows,
             highs,
         )
@@ -378,6 +388,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             print(e)
 
     def request_angle_action(self, angles):
+
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)

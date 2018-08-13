@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 from sensor_msgs.msg import JointState
 
@@ -17,8 +18,8 @@ class JointSprings(object):
     virtual springs.
     """
     def __init__(self, limb = "right",
-				 max_stiffness = 200,
-				 time_to_max_stiffness = 0.075
+				 max_stiffness = 100,
+				 time_to_max_stiffness = 0.1
 				 ):
 
         # control parameters
@@ -35,12 +36,12 @@ class JointSprings(object):
 
 
         # verify robot is enabled
-        print("Getting robot state... ")
-        self._rs = intera_interface.RobotEnable(CHECK_VERSION)
-        self._init_state = self._rs.state().enabled
-        print("Enabling robot... ")
-        self._rs.enable()
-        print("Running. Ctrl-c to quit")
+        # print("Getting robot state... ")
+        # self._rs = intera_interface.RobotEnable(CHECK_VERSION)
+        # self._init_state = self._rs.state().enabled
+        # print("Enabling robot... ")
+        # self._rs.enable()
+        # print("Running. Ctrl-c to quit")
 
         rospy.Subscriber("desired_joint_pos", JointState, self._set_des_pos)
         rospy.Subscriber("release_spring", Float32, self._release)
@@ -131,26 +132,26 @@ class JointSprings(object):
         # for safety purposes, set the control rate command timeout.
         # if the specified number of command cycles are missed, the robot
         # will timeout and disable
-        self._limb.set_command_timeout((1.0 / self._rate) * self._missed_cmds)
+        #self._limb.set_command_timeout((1.0 / self._rate) * self._missed_cmds)
 
         # loop at specified rate commanding new joint torques
         while not rospy.is_shutdown():
-            if not self._rs.state().enabled:
-                rospy.logerr("Joint torque example failed to meet "
-                             "specified control rate timeout.")
-                break
+            # if not self._rs.state().enabled:
+            #     rospy.logerr("Joint torque example failed to meet "
+            #                  "specified control rate timeout.")
+            #     break
             self._update_forces()
             control_rate.sleep()
 
-    def clean_shutdown(self):
-        """
-        Switches out of joint torque mode to exit cleanly
-        """
-        print("\nExiting example...")
-        self._limb.exit_control_mode()
-        if not self._init_state and self._rs.state().enabled:
-            print("Disabling robot...")
-            self._rs.disable()
+    # def clean_shutdown(self):
+    #     """
+    #     Switches out of joint torque mode to exit cleanly
+    #     """
+    #     print("\nExiting example...")
+    #     self._limb.exit_control_mode()
+    #     if not self._init_state and self._rs.state().enabled:
+    #         print("Disabling robot...")
+    #         self._rs.disable()
 
 
 def main():
@@ -161,7 +162,7 @@ def main():
 
     js = JointSprings(limb = 'right')
     # register shutdown callback
-    rospy.on_shutdown(js.clean_shutdown)
+    #rospy.on_shutdown(js.clean_shutdown)
     js.attach_springs()
 
 
