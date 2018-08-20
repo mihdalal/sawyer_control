@@ -68,9 +68,11 @@ The robot doesn't move!
 
 A: Double check that you ran `exp_nodes` before running the experiment
 
+
 I ran `exp_nodes` and the robot still doesn't move!
 
 A: run `status` and check if `Ready=False` if so the robot is in homing mode (Don't currently have a consistent fix for this)
+
 
 The arm is just moving upwards all the time
 
