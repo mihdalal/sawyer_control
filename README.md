@@ -64,17 +64,15 @@ In terms of running algorithms on the sawyer, you can simply plug in the sawyer 
 All the important/hardcoded settings for robot/env details are stored in the config files. Please do not change the ros_config or base_config files. If you wish to modify settings, make a new configuration file and have it import all the standard configs and modify the rest, see `austri_config.py` for an example. Then add the file to the config dictionary in `config.py` and simply pass in the name to the env to obtain the desired settings. 
 
 ### Common Problems:
-The robot doesn't move!
+Q: The robot doesn't move!
 
 A: Double check that you ran `exp_nodes` before running the experiment
 
-
-I ran `exp_nodes` and the robot still doesn't move!
+Q: I ran `exp_nodes` and the robot still doesn't move!
 
 A: run `status` and check if `Ready=False` if so the robot is in homing mode (Don't currently have a consistent fix for this)
 
-
-The arm is just moving upwards all the time
+Q: The arm is just moving upwards all the time
 
 A: You probably need to up the `torque_action_scale`, I recommend something like 4/5, but it depends on how safe you want the environment and how constrained your space is. The problem occurs because you are applying too small torques, so the solution is to apply larger torques. 
 
