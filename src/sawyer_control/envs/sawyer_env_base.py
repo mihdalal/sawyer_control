@@ -14,7 +14,7 @@ from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
 
-class SawyerBaseEnv(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
+class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
             self,
             action_mode='torque',
