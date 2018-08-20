@@ -1,11 +1,11 @@
 from collections import OrderedDict
 import numpy as np
-from sawyer_control.envs.sawyer_env_base import SawyerBaseEnv
+from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
     create_stats_ordered_dict
 
-class SawyerReachXYZEnv(SawyerBaseEnv):
+class SawyerReachXYZEnv(SawyerEnvBase):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
