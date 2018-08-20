@@ -40,7 +40,6 @@ class JointController(object):
 
 
     def move_with_impedance_sec(self, cmd, duration=2.0):
-        print(cmd)
         jointnames = self._limb.joint_names()
         prev_joint = [self._limb.joint_angle(j) for j in jointnames]
         new_joint = np.array([cmd[j] for j in jointnames])

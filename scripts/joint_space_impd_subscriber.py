@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import rospy
 from sensor_msgs.msg import JointState
-
+import numpy as np
 import intera_interface
 from intera_interface import CHECK_VERSION
 
 from std_msgs.msg import Float32
-
-
+# from sawyer_control.configs.base_config import MAX_TORQUES
+MAX_TORQUES = 0.5 * np.array([5, 5, 5, 5, 4, 3, 2])
 class JointSprings(object):
     """
     Virtual Joint Springs class for torque example.
@@ -52,10 +52,11 @@ class JointSprings(object):
         self.t_release = rospy.get_time()
 
         self._imp_ctrl_is_active = True
-
-        for joint in self._limb.joint_names():
+        self.max_torques = {}
+        for joint, torque in zip(self._limb.joint_names(), MAX_TORQUES):
             self._springs[joint] = max_stiffness
             self._damping[joint] = 2
+            self.max_torques[joint] = torque
 
 
 
@@ -107,7 +108,8 @@ class JointSprings(object):
                                                  cur_pos[joint])
             # damping portion
             cmd[joint] -= self._damping[joint] * cur_vel[joint]
-
+            cmd[joint] = np.clip(cmd[joint], -self.max_torques[joint], self.max_torques[joint])
+        print(cmd)
         # command new joint torques
         if self._imp_ctrl_is_active:
             self._limb.set_joint_torques(cmd)

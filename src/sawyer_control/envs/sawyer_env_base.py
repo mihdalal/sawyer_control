@@ -13,6 +13,7 @@ from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
+from sawyer_control.configs.ros_config import RESET_ANGLES
 
 class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
@@ -48,6 +49,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.use_comp = use_comp
 
 
+
     def _act(self, action):
         if self.action_mode == 'position' or self.action_mode == 'joint_space_impd':
             self._position_act(action * self.position_action_scale)
@@ -67,7 +69,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.prev_target = target_ee_pos
         target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
-        self.send_angle_action(angles)
+        self.send_angle_action(angles, target_ee_pos)
 
     def _torque_act(self, action):
         if self.use_safety_box:
@@ -163,13 +165,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.in_reset = False
 
     def reset(self):
-        self.in_reset = True
+        self.do_reset = True
         if self.action_mode == "joint_space_impd" or self.action_mode == "position":
             self._position_act(self.reset_pos - self._get_endeffector_pose())
         else: 
             self._reset_robot()
         self._state_goal = self.sample_goal()
-        self.in_reset = False
+        #self.in_reset = False
+        self.do_reset = False
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -321,9 +324,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def send_action(self, action):
         self.action_publisher.publish(action)
 
-    def send_angle_action(self, action):
+    def send_angle_action(self, action, target):
 
-        self.request_angle_action(action)
+        self.request_angle_action(action, target)
 
     def request_image(self):
         rospy.wait_for_service('images')
@@ -390,9 +393,11 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def request_angle_action(self, angles):
-        dist = np.linalg.norm(self._get_endeffector_pose() - self.reset_pos)
+    def request_angle_action(self, angles, pos):
+        dist = np.linalg.norm(self._get_endeffector_pose() - pos)
         duration = dist/self.max_speed
+        if self.do_reset:
+            angles = RESET_ANGLES
         rospy.wait_for_service('angle_action')
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
