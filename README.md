@@ -1,23 +1,25 @@
 # Sawyer Control
+## Description
+Sawyer Control is a repository that enables RL algorithms to control Rethink Sawyer robots via an OpenAI Gym Style interface. It is both a ROS package and a set of Sawyer (Gym) Envs combined in one. The ROS portion of the repo handles the actual control of the robot and is executed in Python 2. The environments are all in Python 3, and communicate to the robot via the ROS interface. Currently, this repo is capable of utilizing both the state information of the robot as well as visual input from a Microsoft Kinect sensor. 
+
 ## Setup Instructions:
 1. Make sure ros kinetic is installed and make sure to add source /opt/ros/kinetic/setup.bash to your bashrc
 2. Install intera interface from the rethink website and set up intera.sh with the correct ip and hostname of your robot
-3. run `./intera.sh` and then try to import `intera_interface` from system python
-4. Git clone the following in ~/catkin_ws/src/:
+3. Git clone the following in ~/catkin_ws/src/:
 * Urdfdom: https://github.com/ros/urdfdom.git
 * urdf_parser_py: https://github.com/ros/urdf_parser_py
 * pykdl utils: https://github.com/gt-ros-pkg/hrl-kdl/tree/
-5. switch to the indigo-devel branch on all three repos
-6.`git clone sawyer_control: https://github.com/mdalal2020/sawyer_control.git` in ~/catkin_ws/src/
-7. run `catkin_make`
-8. Make sure you are on system python
-9. run `pip install -r system_python_requirements.txt`
-10. install anaconda 2 (Do not install anaconda 3!) and type no when it asks you prepend the anaconda path to the bashrc
-11. manually add in the anaconda path to the bashrc (see example bashrc below)
-12. run `conda create -n <env_name> python=3.5 anaconda`
-13. source activate your python 3 conda environment
-14. run `pip install -r python3_requirements.txt`
-15. install kinect2 bridge: https://github.com/code-iai/iai_kinect2/tree/master/kinect2_bridge
+4. switch to the indigo-devel branch on all three repos
+5.`git clone sawyer_control: https://github.com/mdalal2020/sawyer_control.git` in ~/catkin_ws/src/
+6. run `catkin_make`
+7. Make sure you are on system python
+8. run `pip install -r system_python_requirements.txt`
+9. install anaconda 2 (Do not install anaconda 3!) and type no when it asks you prepend the anaconda path to the bashrc
+10. manually add in the anaconda path to the bashrc (see example bashrc below)
+11. run `conda create -n <env_name> python=3.5 anaconda`
+12. source activate your python 3 conda environment
+13. run `pip install -r python3_requirements.txt`
+14. install kinect2 bridge: https://github.com/code-iai/iai_kinect2/tree/master/kinect2_bridge
 
 Example Bashrc:
 ```
@@ -40,7 +42,7 @@ alias kinect="roslaunch kinect2_bridge kinect2_bridge.launch"
 
 ## Usage:
 
-Basic workflow:
+### Basic workflow:
 
 1. Make sure robot is enabled
 
@@ -49,11 +51,17 @@ Basic workflow:
 saw
 exp_nodes 
 ``` 
-
+3. (Optional) open another terminal/tab and run the following commands:
+```
+saw 
+kinect
+```
 3. Now open another terminal/tab and run your algorithm on the sawyer
 
-In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script
-the same you use any other gym environment: The sawyer env follows the OpenAI Gym API. 
+In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script in the same way you use any other gym environment: The sawyer env follows the OpenAI Gym API. 
+
+### Configs:
+All the important/hardcoded settings for robot/env details are stored in the config files. Please do not change the ros_config or base_config files. If you wish to modify settings, make a new configuration file and have it import all the standard configs and modify the rest, see `austri_config.py` for an example. Then add the file to the config dictionary in `config.py` and simply pass in the name to the env to obtain the desired settings. 
 
 ## Features:
 * Torque and Position Control Modes
