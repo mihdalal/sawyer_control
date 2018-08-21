@@ -56,7 +56,7 @@ exp_nodes
 saw 
 kinect
 ```
-3. Now open another terminal/tab and run your algorithm on the sawyer
+3. Now open another terminal/tab and run your algorithm on the sawyer. Note you must run `saw` in any new tab that accesses environments/scripts in `sawyer_control`. 
 
 In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script in the same way you use any other gym environment: The sawyer environments follow the OpenAI Gym API. Additionally, these environments are Multitask by default, which means that they resample goals on reset and have goal conditioned rewards. If you just want a single goal, set `fix_goal=True` and provide the goal you desire to the environment in `fixed_goal`.  
 
