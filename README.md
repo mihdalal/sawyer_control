@@ -40,6 +40,13 @@ alias exp_nodes="roslaunch ~/catkin_ws/src/sawyer_control/exp_nodes.launch"
 alias kinect="roslaunch kinect2_bridge kinect2_bridge.launch"
 ```
 
+## Environments
+All environments inherit from `SawyerEnvBase` which contains all of the core functionality that is central to using the Sawyer Robot including different control modes, robot state observations, and safety boxes. Note, unless you have a good reason not to, you should ALWAYS have the safety box enabled, ie set `use_safety_box=True`. This environment also provides functionality for changing various settings (see configs section) as well as having a fixed goal (as opposed to the default functionality, which is multi-goal). 
+
+There are two main control modes for the Sawyer robot, torque and position, each of which has differing functionality and settings. In terms of the actual controller, all of the actions are executed using intera's in built torque/joint position controller, and the environment merely provides an abstraction around this. For the torque control mode, changing around the `torque_action_scale` will be quite important (generally larger values around 5 or so are better) and the control frequency is 20Hz. The position control mode in the environment does end-effector position control, an option that intera does not provide. As a result, given a desired end-effector position, the environment uses inverse kinematics to compute the corresponding joint angles, and commands the intera joint angle controller to move to those angles. The position controller is a bit slow (2-5Hz control frequency) currently and gives inverse kinematics errors if the desired position is too close to the robot, so it is important to take this into account when using this mode. Additionally, the average error of the position controller is somewhere between 3-5cm from the target. We are currently working on integrating in a better position controller. 
+
+Currently the repository holds two main environments, `SawyerReachXYZEnv` and `SawyerPushXYEnv`. For `SawyerReachXYZEnv` the goal is to reach a target end-effector position. For `SawyerPushXYEnv` the goal is to push an object to a desired position. Since the environment is in the real world, for which we don't have access to the state information of the object to push, you must wrap this environment with `ImageEnv`. See the usage section for how to to this.
+
 ## Usage:
 
 ### Basic workflow:
@@ -59,6 +66,25 @@ kinect
 3. Now open another terminal/tab and run your algorithm on the sawyer. Note you must run `saw` in any new tab that accesses environments/scripts in `sawyer_control`. 
 
 In terms of running algorithms on the sawyer, you can simply plug in the sawyer environments directly into your launch script in the same way you use any other gym environment: The sawyer environments follow the OpenAI Gym API. Additionally, these environments are Multitask by default, which means that they resample goals on reset and have goal conditioned rewards. If you just want a single goal, set `fix_goal=True` and provide the goal you desire to the environment in `fixed_goal`.  
+
+### Using Environments
+
+To import the reaching or pushing environment:
+
+```
+from sawyer_control.envs.sawyer_reaching import SawyerReachXYZEnv
+env = SawyerReachXYZEnv(...)
+env.step(action=...)
+```
+
+To use the `ImageEnv` wrapper (which is compatible with any SawyerEnv):
+```
+from sawyer_control.envs.sawyer_pushing import SawyerPushXYEnv
+from sawyer_control.core import ImageEnv
+env = SawyerPushXYEnv(...)
+image_env = ImageEnv(env, ...)
+image = env.get_flat_image()
+```
 
 ### Configs:
 All the important/hardcoded settings for robot/env details are stored in the config files. Please do not change the ros_config or base_config files. If you wish to modify settings, make a new configuration file and have it import all the standard configs and modify the rest, see `austri_config.py` for an example. Then add the file to the config dictionary in `config.py` and simply pass in the name to the env to obtain the desired settings. 
