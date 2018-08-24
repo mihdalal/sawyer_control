@@ -7,7 +7,7 @@ from intera_interface import CHECK_VERSION
 
 from std_msgs.msg import Float32
 # from sawyer_control.configs.base_config import MAX_TORQUES
-MAX_TORQUES = 0.5 * np.array([5, 5, 5, 5, 4, 3, 2])
+MAX_TORQUES = 0.75 * np.array([8, 7, 6, 5, 4, 3, 2])
 class JointSprings(object):
     """
     Virtual Joint Springs class for torque example.
@@ -109,7 +109,6 @@ class JointSprings(object):
             # damping portion
             cmd[joint] -= self._damping[joint] * cur_vel[joint]
             cmd[joint] = np.clip(cmd[joint], -self.max_torques[joint], self.max_torques[joint])
-        print(cmd)
         # command new joint torques
         if self._imp_ctrl_is_active:
             self._limb.set_joint_torques(cmd)
