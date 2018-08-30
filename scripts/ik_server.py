@@ -23,7 +23,7 @@ def compute_joint_angle(req):
     reset_angles = ros_config.RESET_ANGLES
     reset_angles = dict(zip(joint_names, reset_angles))
     current_angles = arm.joint_angles()
-    ik_angles = get_joint_angles(pose, reset_angles, True)
+    ik_angles = get_joint_angles(pose, reset_angles, True, True)
 
     ik_angles = [ik_angles[joint] for joint in joint_names]
     return ikResponse(ik_angles)

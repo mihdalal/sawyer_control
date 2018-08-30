@@ -56,6 +56,7 @@ class JointController(object):
 
 def execute_action(action_msg):
     action = action_msg.angles
+    in_reset = action_msg.in_reset
     joint_space_impd = action_msg.joint_space_impd
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
@@ -67,7 +68,12 @@ def execute_action(action_msg):
     if joint_space_impd:
         controller.move_with_impedance_sec(joint_to_values, duration=duration)
     else:
-        arm.move_to_joint_positions(joint_to_values)
+
+        if not in_reset:
+            t = 5
+        else:
+            t = 15
+        arm.move_to_joint_positions(joint_to_values, timeout=t)
     return angle_actionResponse(True)
 
 def angle_action_server():

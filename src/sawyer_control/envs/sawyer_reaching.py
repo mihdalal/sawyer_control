@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from gym.spaces import Dict
 import numpy as np
+from gym.spaces import Box
 from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
@@ -24,11 +25,11 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         self._state_goal = np.array(fixed_goal)
         self.observation_space = Dict([
             ('observation', self.obs_space),
-            ('desired_goal', self.goal_space),
-            ('achieved_goal', self.goal_space),
+            ('desired_goal', self.obs_space),
+            ('achieved_goal', self.obs_space),
             ('state_observation', self.obs_space),
-            ('state_desired_goal', self.goal_space),
-            ('state_achieved_goal', self.goal_space),])
+            ('state_desired_goal', self.obs_space),
+            ('state_achieved_goal', self.obs_space),])
 
 
     def compute_rewards_multi(self, actions, obs, goals):
@@ -40,7 +41,13 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         else:
             raise NotImplementedError("Invalid/no reward type.")
         return r
-
+    def _set_observation_space(self):
+        lows = np.array(self.config.END_EFFECTOR_VALUE_LOW['position'])
+        highs = np.array(self.config.END_EFFECTOR_VALUE_HIGH['position'])
+        self.obs_space = Box(
+            lows,
+            highs,
+        )
     def _get_info(self):
         hand_distance = np.linalg.norm(self._state_goal - self._get_endeffector_pose())
         return dict(
@@ -74,13 +81,13 @@ class SawyerReachXYZEnv(SawyerEnvBase):
 
     def _get_obs(self):
         ee_pos = self._get_endeffector_pose()
-        state_obs = super()._get_obs()
+        # state_obs = super()._get_obs()
         return dict(
-            observation=state_obs,
+            observation=ee_pos,
             desired_goal=self._state_goal,
             achieved_goal=ee_pos,
 
-            state_observation=state_obs,
+            state_observation=ee_pos,
             state_desired_goal=self._state_goal,
             state_achieved_goal=ee_pos,
         )
@@ -127,8 +134,8 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return goals
 
     def compute_rewards(self, actions, obs):
-        achieved_goals = obs['achieved_goal']
-        desired_goals = obs['desired_goal']
+        achieved_goals = obs['state_achieved_goal']
+        desired_goals = obs['state_desired_goal']
         hand_pos = achieved_goals
         goals = desired_goals
         distances = np.linalg.norm(hand_pos - goals, axis=1)
@@ -150,8 +157,8 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         self._state_goal = goal
         if self.action_mode=='position':
             self._position_act(goal - self._get_endeffector_pose()[:3])
-        else:
-            return self._get_obs()
+
+        return self._get_obs()
 
 
     def get_diagnostics(self, paths, prefix=''):
