@@ -13,7 +13,7 @@ class SawyerReachXYZEnv(SawyerEnvBase):
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
-        SawyerBaseEnv.__init__(self, **kwargs)
+        SawyerEnvBase.__init__(self, **kwargs)
         if self.action_mode=='torque':
             self.goal_space = self.config.TORQUE_SAFETY_BOX
         else:
