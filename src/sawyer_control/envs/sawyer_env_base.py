@@ -114,20 +114,10 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-
-        reward = self.compute_reward(action, observation['state_achieved_goal'],  self.convert_obs_to_goals(observation))
-        reward = -np.linalg.norm(observation['state_achieved_goal'] - observation['state_desired_goal'])
+        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
         info = self._get_info()
         done = False
         return observation, reward, done, info
-
-    # def step(self, action):
-    #     self._act(action)
-    #     observation = self._get_obs()
-    #     reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
-    #     info = self._get_info()
-    #     done = False
-    #     return observation, reward, done, info
     
     def _get_obs(self):
         angles, velocities, endpoint_pose = self.request_observation()
@@ -303,16 +293,16 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _set_observation_space(self):
         lows = np.hstack((
-            # self.config.JOINT_VALUE_LOW['position'],
-            # self.config.JOINT_VALUE_LOW['velocity'],
+            self.config.JOINT_VALUE_LOW['position'],
+            self.config.JOINT_VALUE_LOW['velocity'],
             self.config.END_EFFECTOR_VALUE_LOW['position'],
-            # self.config.END_EFFECTOR_VALUE_LOW['angle'],
+            self.config.END_EFFECTOR_VALUE_LOW['angle'],
         ))
         highs = np.hstack((
-            # self.config.JOINT_VALUE_HIGH['position'],
-            # self.config.JOINT_VALUE_HIGH['velocity'],
+            self.config.JOINT_VALUE_HIGH['position'],
+            self.config.JOINT_VALUE_HIGH['velocity'],
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
-            # self.config.END_EFFECTOR_VALUE_HIGH['angle'],
+            self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
         self.observation_space = Box(
             lows,

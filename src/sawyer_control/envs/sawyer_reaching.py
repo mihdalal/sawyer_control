@@ -4,6 +4,7 @@ from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
     create_stats_ordered_dict
+from gym.spaces import Box
 
 class SawyerReachXYZEnv(SawyerEnvBase):
     def __init__(self,
@@ -22,6 +23,12 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         self.reward_type = reward_type
         self._state_goal = np.array(fixed_goal)
 
+    def _get_obs(self):
+        if self.action_mode=='position':
+            return self._get_endeffector_pose()
+        else:
+            return super()._get_obs()
+
     def compute_rewards(self, actions, obs, goals):
         distances = np.linalg.norm(obs - goals, axis=1)
         if self.reward_type == 'hand_distance':
@@ -37,6 +44,32 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return dict(
             hand_distance=hand_distance,
             hand_success=(hand_distance<self.indicator_threshold).astype(float)
+        )
+    def _set_observation_space(self):
+        if self.action_mode=='position':
+            lows = np.hstack((
+                self.config.END_EFFECTOR_VALUE_LOW['position'],
+            ))
+            highs = np.hstack((
+                self.config.END_EFFECTOR_VALUE_HIGH['position'],
+            ))
+        else:
+            lows = np.hstack((
+                self.config.JOINT_VALUE_LOW['position'],
+                self.config.JOINT_VALUE_LOW['velocity'],
+                self.config.END_EFFECTOR_VALUE_LOW['position'],
+                self.config.END_EFFECTOR_VALUE_LOW['angle'],
+            ))
+            highs = np.hstack((
+                self.config.JOINT_VALUE_HIGH['position'],
+                self.config.JOINT_VALUE_HIGH['velocity'],
+                self.config.END_EFFECTOR_VALUE_HIGH['position'],
+                self.config.END_EFFECTOR_VALUE_HIGH['angle'],
+            ))
+
+        self.observation_space = Box(
+            lows,
+            highs,
         )
 
     def get_diagnostics(self, paths, prefix=''):
