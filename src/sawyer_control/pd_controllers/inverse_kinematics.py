@@ -21,7 +21,7 @@ from intera_core_msgs.srv import (
     SolvePositionIKRequest,
 )
 
-def get_joint_angles(pose, seed_cmd = None, use_advanced_options = False):
+def get_joint_angles(pose, seed_cmd = None, use_advanced_options = False, current=True):
     limb = "right"
     name_of_service = "ExternalTools/" + limb + "/PositionKinematicsNode/IKService"
     iksvc = rospy.ServiceProxy(name_of_service, SolvePositionIK)
@@ -32,8 +32,10 @@ def get_joint_angles(pose, seed_cmd = None, use_advanced_options = False):
 
     seed_joints = None
     if use_advanced_options:
-        ikreq.seed_mode = ikreq.SEED_AUTO
-
+        if current:
+            ikreq.seed_mode = ikreq.SEED_CURRENT
+        else:
+            ikreq.seed_mode = ikreq.SEED_AUTO
         seed = joint_state_from_cmd(seed_cmd)
         ikreq.seed_angles.append(seed)
 

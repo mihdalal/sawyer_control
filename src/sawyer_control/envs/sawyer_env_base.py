@@ -13,6 +13,7 @@ from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
+from sawyer_control.configs.ros_config import RESET_ANGLES
 
 class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
@@ -23,12 +24,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             position_action_scale=1/10,
             config_name = 'base_config',
             fix_goal=False,
+            use_compliant_position_controller=False,
+            max_speed = 0.05
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
         self.config = config[config_name]
         self.init_rospy(self.config.UPDATE_HZ)
         self.action_mode = action_mode
+        self.max_speed = max_speed
 
         self.use_safety_box = use_safety_box
         self.AnglePDController = AnglePDController(config=self.config)
@@ -42,9 +46,17 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self._state_goal = None
         self.fix_goal = fix_goal
 
+        self.reset_pos = np.array([ 0.55, -0.05,  0.25471401])
+        self.prev_target = None
+        self.use_comp = use_compliant_position_controller
+        self.count = 0
+        self.errors = []
+        self.ik_errors = 0
+        self.prev_angles = None
+
 
     def _act(self, action):
-        if self.action_mode == 'position':
+        if self.action_mode == 'joint_space_impd':
             self._position_act(action * self.position_action_scale)
         else:
             self._torque_act(action*self.torque_action_scale)
@@ -52,14 +64,26 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _position_act(self, action):
         ee_pos = self._get_endeffector_pose()
+        if self.prev_angles != None:
+            self.errors.append(abs(self.prev_target - ee_pos))
+        self.count += 1
+        if self.count % 1000 == 0:
+            print('ik errors: ', self.ik_errors)
         endeffector_pos = ee_pos[:3]
         endeffector_angles = ee_pos[3:]
-        target_ee_pos = (endeffector_pos + action)
+        if self.prev_target is not None and self.use_comp:
+            target_ee_pos = self.prev_target + action
+        else:
+            target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
+        self.prev_target = target_ee_pos
         target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
-        self.send_angle_action(angles)
-
+        # if angles == None:
+        #     print('state ', ee_pos)
+        #     print('action ', action)
+        self.prev_angles = angles
+        self.send_angle_action(angles, target_ee_pos)
     def _torque_act(self, action):
         if self.use_safety_box:
             if self.in_reset:
@@ -103,7 +127,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def step(self, action):
         self._act(action)
         observation = self._get_obs()
-        reward = self.compute_reward(action, self.convert_ob_to_goal(observation), self._state_goal)
+
+        reward = self.compute_reward(action, observation['state_achieved_goal'],  self.convert_obs_to_goals(observation))
+        reward = -np.linalg.norm(observation['state_achieved_goal'] - observation['state_desired_goal'])
         info = self._get_info()
         done = False
         return observation, reward, done, info
@@ -154,8 +180,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.in_reset = False
 
     def reset(self):
-        self._reset_robot()
+        self.do_reset = True
+        if self.action_mode == "joint_space_impd" or self.action_mode == "position":
+            self._position_act(self.reset_pos - self._get_endeffector_pose())
+        else: 
+            self._reset_robot()
         self._state_goal = self.sample_goal()
+        #self.in_reset = False
+        self.do_reset = False
+
         return self._get_obs()
 
     def get_latest_pose_jacobian_dict(self):
@@ -266,7 +299,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         pass
 
     def _set_action_space(self):
-        if self.action_mode == 'position':
+        if self.action_mode == 'joint_space_impd':
             self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
@@ -290,7 +323,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
             self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
-        self.observation_space = Box(
+        self.obs_space = Box(
             lows,
             highs,
         )
@@ -307,8 +340,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def send_action(self, action):
         self.action_publisher.publish(action)
 
-    def send_angle_action(self, action):
-        self.request_angle_action(action)
+    def send_angle_action(self, action, target):
+
+        self.request_angle_action(action, target)
 
     def request_image(self):
         rospy.wait_for_service('images')
@@ -341,14 +375,20 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def request_angle_action(self, angles):
+    def request_angle_action(self, angles, pos):
+        dist = np.linalg.norm(self._get_endeffector_pose() - pos)
+        duration = dist/self.max_speed
         rospy.wait_for_service('angle_action')
+        if self.do_reset:
+            angles = RESET_ANGLES
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            execute_action(angles)
+            impd = self.action_mode == "joint_space_impd"
+            execute_action(angles, impd, duration, self.do_reset)
             return None
         except rospy.ServiceException as e:
-            print(e)
+            h = 1
+            #print(e)
 
 
     def request_ik_angles(self, ee_pos, joint_angles):
@@ -361,7 +401,10 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
                 resp.joint_angles
             )
         except rospy.ServiceException as e:
-            print(e)
+            #print(e)
+            self.ik_errors += 1
+            if self.ik_errors % 100 == 0:
+                print('ik errors ', self.ik_errors)
 
     """
     Multitask functions

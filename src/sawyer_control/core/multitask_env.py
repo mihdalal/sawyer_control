@@ -34,14 +34,14 @@ class MultitaskEnv(metaclass=abc.ABCMeta):
         pass
 
     def sample_goal(self):
-        goals = self.sample_goals(1)[0]
+        goals = self.sample_goals_multi(1)[0]
         return goals
 
     def compute_reward(self, action, obs, goal):
         actions = action[None]
         obs = obs[None]
         goal = goal[None]
-        return self.compute_rewards(actions, obs, goal)[0]
+        return self.compute_rewards_multi(actions, obs, goal)[0]
 
     def get_diagnostics(self, *args, **kwargs):
         """

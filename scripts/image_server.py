@@ -9,7 +9,6 @@ import thread
 import numpy as np
 import imutils
 
-
 class Latest_observation(object):
     def __init__(self):
         # color image:
@@ -103,6 +102,7 @@ class KinectRecorder(object):
         img = img[startrow:endrow, startcol:endcol]
         assert img.shape == (64, 64, 3)
         return img
+
 
 def get_observation(unused):
     img = kr.ltob.img_cv2
