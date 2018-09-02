@@ -377,7 +377,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             execute_action(angles, impd, duration, in_reset)
             return None
         except rospy.ServiceException as e:
-            print(e)
+            pass
 
 
     def request_ik_angles(self, ee_pos, joint_angles):
@@ -390,7 +390,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
                 resp.joint_angles
             )
         except rospy.ServiceException as e:
-            print(e)
+            pass
 
     """
     Multitask functions
