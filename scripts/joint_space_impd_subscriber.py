@@ -4,10 +4,9 @@ from sensor_msgs.msg import JointState
 import numpy as np
 import intera_interface
 from intera_interface import CHECK_VERSION
-
 from std_msgs.msg import Float32
-# from sawyer_control.configs.base_config import MAX_TORQUES
-MAX_TORQUES = 0.5 * np.array([8, 7, 6, 5, 4, 3, 2])
+import sawyer_control.configs.ros_config as config
+
 class JointSprings(object):
     """
     Virtual Joint Springs class for torque example.
@@ -23,8 +22,7 @@ class JointSprings(object):
 				 ):
 
         # control parameters
-        self._rate = 1000.0  # Hz
-        self._missed_cmds = 20.0  # Missed cycles before triggering timeout
+        self._rate = config.JOINT_SPACE_IMPD_RATE
 
         # create our limb instance
         self._limb = intera_interface.Limb(limb)
@@ -34,18 +32,8 @@ class JointSprings(object):
         self._damping = dict()
         self._des_angles = dict()
 
-
-        # verify robot is enabled
-        # print("Getting robot state... ")
-        # self._rs = intera_interface.RobotEnable(CHECK_VERSION)
-        # self._init_state = self._rs.state().enabled
-        # print("Enabling robot... ")
-        # self._rs.enable()
-        # print("Running. Ctrl-c to quit")
-
         rospy.Subscriber("desired_joint_pos", JointState, self._set_des_pos)
         rospy.Subscriber("release_spring", Float32, self._release)
-
 
         self.max_stiffness = max_stiffness
         self.time_to_maxstiffness =  time_to_max_stiffness  ######### 0.68
@@ -53,7 +41,7 @@ class JointSprings(object):
 
         self._imp_ctrl_is_active = True
         self.max_torques = {}
-        for joint, torque in zip(self._limb.joint_names(), MAX_TORQUES):
+        for joint, torque in zip(self._limb.joint_names(), config.JOINT_SPACE_IMPD_MAX_TORQUES):
             self._springs[joint] = max_stiffness
             self._damping[joint] = 2
             self.max_torques[joint] = torque
@@ -91,17 +79,13 @@ class JointSprings(object):
         # print self._springs
         self.adjust_springs()
 
-        # disable cuff interaction
-        # if self._imp_ctrl_is_active:
-        #     self._pub_cuff_disable.publish()
-
         # create our command dict
         cmd = dict()
         # record current angles/velocities
         cur_pos = self._limb.joint_angles()
         cur_vel = self._limb.joint_velocities()
-        # calculate current forces
 
+        # calculate current forces
         for joint in self._des_angles.keys():
             # spring portion
             cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
@@ -130,34 +114,12 @@ class JointSprings(object):
         # set control rate
         control_rate = rospy.Rate(self._rate)
 
-        # for safety purposes, set the control rate command timeout.
-        # if the specified number of command cycles are missed, the robot
-        # will timeout and disable
-        #self._limb.set_command_timeout((1.0 / self._rate) * self._missed_cmds)
-
         # loop at specified rate commanding new joint torques
         while not rospy.is_shutdown():
-            # if not self._rs.state().enabled:
-            #     rospy.logerr("Joint torque example failed to meet "
-            #                  "specified control rate timeout.")
-            #     break
             self._update_forces()
             control_rate.sleep()
 
-    # def clean_shutdown(self):
-    #     """
-    #     Switches out of joint torque mode to exit cleanly
-    #     """
-    #     print("\nExiting example...")
-    #     self._limb.exit_control_mode()
-    #     if not self._init_state and self._rs.state().enabled:
-    #         print("Disabling robot...")
-    #         self._rs.disable()
-
-
 def main():
-
-
     # Starting node connection to ROS
     rospy.init_node('joint_space_impd')
 
