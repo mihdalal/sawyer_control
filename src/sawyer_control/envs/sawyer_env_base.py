@@ -437,11 +437,3 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def initialize_camera(self, init_fctn):
         pass
-
-#Temporary functions:
-#TODO: DELETE THESE ONCE WE SWITCH TO MULTIWORLD
-    def sample_goal_for_rollout(self):
-        return self.sample_goal()
-
-    def compute_her_reward_np(self, ob, action, next_ob, goal, infos):
-        return self.compute_reward(action, self.convert_ob_to_goal(next_ob), goal)
