@@ -24,6 +24,7 @@ class JointSprings(object):
         # control parameters
         self._rate = config.JOINT_SPACE_IMPD_RATE
 
+
         # create our limb instance
         self._limb = intera_interface.Limb(limb)
 

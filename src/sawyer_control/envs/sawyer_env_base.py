@@ -303,16 +303,16 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _set_observation_space(self):
         lows = np.hstack((
-            self.config.JOINT_VALUE_LOW['position'],
-            self.config.JOINT_VALUE_LOW['velocity'],
+            # self.config.JOINT_VALUE_LOW['position'],
+            # self.config.JOINT_VALUE_LOW['velocity'],
             self.config.END_EFFECTOR_VALUE_LOW['position'],
-            self.config.END_EFFECTOR_VALUE_LOW['angle'],
+            # self.config.END_EFFECTOR_VALUE_LOW['angle'],
         ))
         highs = np.hstack((
-            self.config.JOINT_VALUE_HIGH['position'],
-            self.config.JOINT_VALUE_HIGH['velocity'],
+            # self.config.JOINT_VALUE_HIGH['position'],
+            # self.config.JOINT_VALUE_HIGH['velocity'],
             self.config.END_EFFECTOR_VALUE_HIGH['position'],
-            self.config.END_EFFECTOR_VALUE_HIGH['angle'],
+            # self.config.END_EFFECTOR_VALUE_HIGH['angle'],
         ))
         self.observation_space = Box(
             lows,
