@@ -335,11 +335,16 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def get_image(self):
+    def get_image(self, width=84, height=84):
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
         image = np.asarray(image).reshape(84, 84, 3)
+        import scipy.misc
+        image = scipy.misc.imresize(
+            image,
+            (width, height, 3)
+        )
         return image
 
     def request_observation(self):
@@ -420,10 +425,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     """
 
     def get_env_state(self):
-        return self._get_joint_angles()
+        return self._get_joint_angles(), self._get_endeffector_pose()
 
-    def set_env_state(self, angles):
-        self.send_angle_action(angles)
+    def set_env_state(self, env_state):
+        angles, ee_pos = env_state
+        for _ in range(3):
+            self.send_angle_action(angles, ee_pos)
 
     def initialize_camera(self, init_fctn):
         pass

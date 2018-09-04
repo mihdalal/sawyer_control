@@ -104,4 +104,6 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return obs[:, -3:]
 
     def set_to_goal(self, goal):
-        self._position_act(goal - self._get_endeffector_pose()[:3])
+        for _ in range(3):
+            self._position_act(goal - self._get_endeffector_pose()[:3])
+        return self._get_endeffector_pose()[:3]
