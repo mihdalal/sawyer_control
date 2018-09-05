@@ -75,6 +75,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
         self.prev_target = target_ee_pos
+
         target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         # if angles == None:

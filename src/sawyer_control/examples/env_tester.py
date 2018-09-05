@@ -1,20 +1,26 @@
 #!/usr/bin/python3
 import numpy as np
 from railrl.exploration_strategies.ou_strategy import OUStrategy
-from sawyer_control.envs.sawyer_reaching import SawyerReachXYZEnv
-env = SawyerReachXYZEnv(action_mode='position', position_action_scale=0.05, max_speed=0.1)
-ou = OUStrategy(env.action_space, theta = 0.2)
-arr = [np.array([0.05, 0, 0]),np.array([-0.05, 0, 0]) ]
+from sawyer_control.envs.sawyer_door import SawyerDoorXYZEnv
+import cv2
+env = SawyerDoorXYZEnv(action_mode='joint_space_impd', position_action_scale=0.05, max_speed=0.03)
+def get_img(i):
+   img = env.request_image()
+   img = np.array(img)
+   img = img.reshape(84, 84, 3)
+   cv2.imwrite('door_images/' + str(i) + '.png', img)
+   return img
+
+#env.reset()
+for i in range(9001, 10000):
+	delta = np.random.uniform(-0.04, 0.04, 3)
+	env._position_act(delta)
+	print(i)
+	get_img(i)
+	if i % 1500 == 0 and i != 0:
+		env.reset()
+	if i % 2000 == 0:
+		input()
 env.reset()
-# import time
-# for i in range(250):
-# 	cur = env._get_endeffector_pose()
-# 	cur_time = time.time()
-# 	delta = ou.get_action_from_raw_action(np.zeros(3))*0.05
-# 	env._position_act(delta)
-# 	new = env._get_endeffector_pose()
-# 	error = delta - (new - cur)
-# 	if i % 50 == 0:
-# 		env.reset()
-# env.reset()
-# print(env.ik_errors)
+print(env.ik_errors)
+

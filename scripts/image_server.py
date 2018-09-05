@@ -166,9 +166,15 @@ class KinectRecorder(object):
         endcol = startcol + 1500
         endrow = startrow + 1500
         cv_image = copy.deepcopy(cv_image[startrow:endrow, startcol:endcol])
-        cv_image = cv2.resize(cv_image, (0, 0), fx=0.056, fy=0.07777777777, interpolation=cv2.INTER_AREA)
+
+
+
         if self.instance_type == 'main':
             cv_image = imutils.rotate_bound(cv_image, 180)
+        cv_image = cv_image[500:, 350:]
+
+        #cv_image = cv2.resize(cv_image, (0, 0), fx=0.056, fy=0.07777777777, interpolation=cv2.INTER_AREA)
+        cv_image = cv2.resize(cv_image, (0, 0), fx=0.07304347826086957, fy=0.14482758620689656, interpolation=cv2.INTER_AREA)
         return cv_image
 
     def crop_lowres(self, cv_image):
