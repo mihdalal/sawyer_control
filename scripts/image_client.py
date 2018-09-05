@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
 from sawyer_control.srv import image
-import cv2
 import numpy as np
 
 def request_observation():

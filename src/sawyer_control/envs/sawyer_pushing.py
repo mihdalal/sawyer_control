@@ -31,9 +31,7 @@ class SawyerPushXYEnv(SawyerEnvBase):
         obj_goal = np.concatenate((goal[:2], [self.z]))
         ee_goal = np.concatenate((goal[2:4], [self.z]))
         self._position_act(obj_goal-self._get_endeffector_pose()[:3])
-        print('place object at end effector location and press enter')
-        input()
-        #MOVES ROBOT ARM TO GOAL POSITION:
+        input('place object at end effector location and press enter')
         self._position_act(ee_goal - self._get_endeffector_pose()[:3])
 
     def _reset_robot(self):
@@ -41,8 +39,7 @@ class SawyerPushXYEnv(SawyerEnvBase):
         self._safe_move_to_neutral()
         self.in_reset = False
         if self.pause_on_reset:
-            print('move object to reset position and press enter')
-            input()
+            input('move object to reset position and press enter')
 
     def reset(self):
         self._reset_robot()

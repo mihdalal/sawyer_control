@@ -4,15 +4,11 @@ import rospy
 import numpy as np
 import intera_interface as ii
 from sawyer_control.pd_controllers.inverse_kinematics import *
-from geometry_msgs.msg import (
-    Quaternion,
-)
 from sawyer_control.configs import ros_config
 joint_names = ros_config.JOINT_NAMES
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
-
     Q = Quaternion(x=-0.4939671320019262,
                    y=0.4521761317810839,
                    z=-0.4981885578001289,
@@ -27,7 +23,6 @@ def compute_joint_angle(req):
     reset_angles = dict(zip(joint_names, reset_angles))
     current_angles = arm.joint_angles()
     ik_angles = get_joint_angles(pose, reset_angles, True, True)
-    print(ik_angles)
     ik_angles = [ik_angles[joint] for joint in joint_names]
     return ikResponse(ik_angles)
 

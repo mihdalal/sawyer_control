@@ -1,7 +1,6 @@
 import rospy
 from sawyer_control.srv import *
 import numpy as np
-import ipdb
 joint_names = [
     '_l2',
     '_l3',
