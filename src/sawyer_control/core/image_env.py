@@ -48,7 +48,7 @@ class ImageEnv(ProxyEnv):
             self.image_length = 3 * self.imsize * self.imsize
         self.image_shape = (self.imsize, self.imsize)
         self._img_goal = None
-        self.observation_space = Box(0, 1, (self.image_length,))
+        self.observation_space = Box(0, 1, (self.image_length,), dtype=np.float32)
         self.reward_type=reward_type
         self.threshold = threshold
 

@@ -17,7 +17,7 @@ class SawyerPushXYEnv(SawyerEnvBase):
         SawyerEnvBase.__init__(self, action_mode=action_mode, **kwargs)
         lows = self.config.POSITION_SAFETY_BOX_LOWS[:2]
         highs = self.config.POSITION_SAFETY_BOX_HIGHS[:2]
-        self.goal_space = Box(np.concatenate((lows, lows)), np.concatenate((highs, highs)))
+        self.goal_space = Box(np.concatenate((lows, lows)), np.concatenate((highs, highs)), dtype=np.float32)
         self._state_goal = None
         self.pause_on_reset=pause_on_reset
         self.z = z

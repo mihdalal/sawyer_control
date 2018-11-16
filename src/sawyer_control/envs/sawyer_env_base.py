@@ -270,11 +270,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
+                dtype=np.float32,
             )
         else:
             self.action_space = Box(
                 self.config.JOINT_TORQUE_LOW,
-                self.config.JOINT_TORQUE_HIGH
+                self.config.JOINT_TORQUE_HIGH,
+                dtype=np.float32,
             )
 
     def _set_observation_space(self):
@@ -293,6 +295,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.observation_space = Box(
             lows,
             highs,
+            dtype=np.float32,
         )
             
     """ 
