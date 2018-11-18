@@ -324,11 +324,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def get_image(self):
+    def get_image(self, width=84, height=84):
+        assert width == 84, 'only 84 image size supported for now'
+        assert height == 84, 'only 84 image size supported for now'
+
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
-        image = np.asarray(image).reshape(84, 84, 3)
+        image = np.flipud(np.asarray(image).reshape(84, 84, 3))
         return image
 
     def request_observation(self):
@@ -353,7 +356,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-
     def request_ik_angles(self, ee_pos, joint_angles):
         rospy.wait_for_service('ik')
         try:
@@ -364,7 +366,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
                 resp.joint_angles
             )
         except rospy.ServiceException as e:
-            print(e)
+            # print(e)
+            pass
 
     """
     Multitask functions
