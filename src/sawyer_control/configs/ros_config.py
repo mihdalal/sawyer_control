@@ -2,7 +2,7 @@ from geometry_msgs.msg import Quaternion
 import numpy as np
 #JOINT_CONTROLLER_SETTINGS
 JOINT_POSITION_SPEED = .1
-JOINT_POSITION_TIMEOUT = .5
+JOINT_POSITION_TIMEOUT = .2
 
 #JOINT INFO
 JOINT_NAMES = ['right_j0',
@@ -20,8 +20,8 @@ LINK_NAMES = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand
 # )
 
 RESET_ANGLES = np.array(
-    [-0.07284961, - 0.99221385, - 0.29631543,  1.78041506, - 0.4403457, - 0.91421682,
-     0.7003721]
+    [0.5273701, - 0.41685352, - 1.31447268,  1.52660453, - 0.28587988, - 0.85791212,
+     1.65813184]
 )
 
 RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
@@ -34,5 +34,5 @@ RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
 # 	)
 
 POSITION_CONTROL_EE_ORIENTATION=Quaternion(
-    x=0.56770986, y=-0.49954435, z=0.5701564, w=-0.32106492
+    x=-0.4500708, y=0.56084436, z=-0.46314317, w=0.518062
 )
