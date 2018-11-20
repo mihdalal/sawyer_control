@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import numpy as np
 from gym.spaces import Box
 from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
@@ -17,6 +16,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                  reset_free=False,
                  goal_low=None,
                  goal_high=None,
+                 reset_pos=None,
                  **kwargs
                 ):
         Serializable.quick_init(self, locals())
@@ -34,26 +34,23 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
         self.reset_free = reset_free
+        if reset_pos is None:
+            reset_pos = np.array([.7,  0.03726282, 0.315])
+        self.reset_pos=reset_pos
 
     @property
     def goal_dim(self):
         return 3 #xyz for object position, angle for door
 
     def set_to_goal(self, goal):
-        raise NotImplementedError("Hard to do because what if the hand is in "
-                                  "the door? Use presampled goals.")
+        ''' ONLY USE FOR DEBUGGING PURPOSES, DOES NOT SET TO CORRECT DOOR ANGLE'''
+        for _ in range(10):
+            self._position_act(goal[:3] - self._get_endeffector_pose()[:3])
 
     def _reset_robot_and_door(self):
         if not self.reset_free:
             for i in range(15):
-                self._position_act(self._get_endeffector_pose()+np.array([.1, 0, 0])) #move up
-            for i in range(15):
-                self._position_act(self._get_endeffector_pose()+np.array([0, 0, .1])) #move up
-            for i in range(15):
-                self._position_act(self._get_endeffector_pose()+np.array([-.1, 0, 0])) #move up
-            self.in_reset = True
-            # self._safe_move_to_neutral() #reset hand
-            self.in_reset = False
+                self._position_act(self.reset_pos-self._get_endeffector_pose())
 
     def reset(self):
         self._reset_robot_and_door()
@@ -67,7 +64,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         raise NotImplementedError('Use Image based reward')
 
     def get_image(self, width=84, height=84):
-        img = super().get_image(width=1000, height=1000),
+        img = super().get_image(width=1000, height=1000)
         startcol = 350
         startrow = 200
         endcol = startcol + 450

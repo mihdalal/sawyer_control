@@ -19,10 +19,27 @@ LINK_NAMES = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand
 #      - 4.32617177e-04,  5.66576183e-01,  3.31357336e+00]
 # )
 
+#outside door angles right above handle
+# RESET_ANGLES = np.array(
+#     [ 0.48191699,  0.16221973, -1.76657319,  1.58018553,  0.23432715, -0.99837106,
+#   1.95938277]
+# )
+
+#outside door angles right above handle far
 RESET_ANGLES = np.array(
-    [0.5273701, - 0.41685352, - 1.31447268,  1.52660453, - 0.28587988, - 0.85791212,
-     1.65813184]
+    [0.57940334,  0.15646386, -1.76931643,  1.84144044,  0.09261718, -1.2038486,
+     2.11029887]
 )
+
+
+
+#inside door angle
+RESET_ANGLES = np.array(
+    [0.49415722,  0.23444238, -1.70247066,  1.52038765,  0.30878517, - 0.92729592,
+     1.8574121]
+)
+
+
 
 RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
 
