@@ -17,6 +17,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                  goal_low=None,
                  goal_high=None,
                  reset_pos=None,
+                 use_state_based_door_angle=False, #must have a dynamixel to do this
                  **kwargs
                 ):
         Serializable.quick_init(self, locals())
@@ -31,7 +32,11 @@ class SawyerDoorEnv(SawyerEnvBase):
                 goal_low = self.config.POSITION_SAFETY_BOX.low
             if goal_high is None:
                 goal_high = self.config.POSITION_SAFETY_BOX.high
-        self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
+        self.use_state_based_door_angle=use_state_based_door_angle
+        if self.use_state_based_door_angle:
+            self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
+        else:
+            self.goal_space = Box(goal_low, goal_high, dtype=np.float32)
         self._state_goal = None
         self.reset_free = reset_free
         if reset_pos is None:
@@ -40,15 +45,18 @@ class SawyerDoorEnv(SawyerEnvBase):
 
     @property
     def goal_dim(self):
-        return 3 #xyz for object position, angle for door
+        if self.use_state_based_door_angle:
+            return 4 #xyz for object position, angle for door
+        else:
+            return 3 #xyz for object position
 
     def set_to_goal(self, goal):
-        ''' ONLY USE FOR DEBUGGING PURPOSES, DOES NOT SET TO CORRECT DOOR ANGLE'''
+        ''' ONLY USE FOR DEBUGGING PURPOSES / GENERATING GOAL DATASET OF IMAGES, DOES NOT SET TO CORRECT DOOR ANGLE'''
         for _ in range(10):
             self._position_act(goal[:3] - self._get_endeffector_pose()[:3])
 
     def _reset_robot_and_door(self):
-        if not self.reset_free:
+        if not self.reset_free and self.use_state_based_door_angle:
             for i in range(15):
                 self._position_act(self.reset_pos-self._get_endeffector_pose())
 
