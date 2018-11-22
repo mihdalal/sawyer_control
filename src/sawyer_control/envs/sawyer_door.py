@@ -79,5 +79,5 @@ class SawyerDoorEnv(SawyerEnvBase):
         endrow = startrow + 600
         img = copy.deepcopy(img[startrow:endrow, startcol:endcol])
         img = cv2.resize(img, (0, 0), fx=width/450, fy=height/600, interpolation=cv2.INTER_AREA)
-        img = np.asarray(img).reshape(width, height, 3)
+        img = np.asarray(img).reshape(width, height, 3)[::, ::, ::-1]
         return img
