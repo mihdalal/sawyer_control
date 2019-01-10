@@ -12,7 +12,7 @@ Sawyer Control is a repository that enables RL algorithms to control Rethink Saw
 * urdf_parser_py: https://github.com/ros/urdf_parser_py
 * pykdl utils: https://github.com/gt-ros-pkg/hrl-kdl
 4. switch to the indigo-devel branch on all three repos
-5. `git clone sawyer_control: https://github.com/mdalal2020/sawyer_control.git` in ~/catkin_ws/src/
+5. run `git clone https://github.com/mdalal2020/sawyer_control.git` in ~/catkin_ws/src/
 6. run `catkin_make`
 7. Make sure you are on system python
 8. run `pip install -r system_python_requirements.txt`
