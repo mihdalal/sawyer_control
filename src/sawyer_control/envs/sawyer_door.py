@@ -22,15 +22,9 @@ class SawyerDoorEnv(SawyerEnvBase):
                 ):
         Serializable.quick_init(self, locals())
         SawyerEnvBase.__init__(self, action_mode=action_mode, **kwargs)
-        if self.action_mode == 'torque':
-            if goal_low is None:
-                goal_low = self.config.TORQUE_SAFETY_BOX.low
-            if goal_high is None:
-                goal_high = self.config.TORQUE_SAFETY_BOX.high
-        else:
-            if goal_low is None:
-                goal_low = self.config.POSITION_SAFETY_BOX.low
-            if goal_high is None:
+        if goal_low is None:
+            goal_low = self.config.POSITION_SAFETY_BOX.low
+        if goal_high is None:
                 goal_high = self.config.POSITION_SAFETY_BOX.high
         self.use_state_based_door_angle=use_state_based_door_angle
         if self.use_state_based_door_angle:
@@ -40,7 +34,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         self._state_goal = None
         self.reset_free = reset_free
         if reset_pos is None:
-            reset_pos = np.array([.7,  0.03726282, 0.315])
+            reset_pos = np.array([ 0.48526675,  0.07449275,  0.41430926])
         self.reset_pos=reset_pos
 
     @property
@@ -58,7 +52,12 @@ class SawyerDoorEnv(SawyerEnvBase):
     def _reset_robot_and_door(self):
         if not self.reset_free and self.use_state_based_door_angle:
             for i in range(15):
-                self._position_act(self.reset_pos-self._get_endeffector_pose())
+                self._position_act(np.array([-1, 0, 0]))
+            for i in range(15):
+                self._position_act(np.array([0, 0, 1]))
+            #reset door 
+            for i in range(15):
+                self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
 
     def reset(self):
         self._reset_robot_and_door()
