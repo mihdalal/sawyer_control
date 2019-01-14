@@ -2,6 +2,7 @@ from collections import OrderedDict
 from gym.spaces import Box
 from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
+from sawyer_control.dynamixel.dynamixel_py import dxl
 import numpy as np
 import cv2
 import copy
@@ -55,7 +56,13 @@ class SawyerDoorEnv(SawyerEnvBase):
                 self._position_act(np.array([-1, 0, 0]))
             for i in range(15):
                 self._position_act(np.array([0, 0, 1]))
-            #reset door 
+            #reset door
+            dxl_ids = [1]
+            dy = dxl(dxl_ids)
+            dy.reset(dxl_ids)
+            # Close connection and exit
+            dy.close(dxl_ids)
+            print('successful exit')
             for i in range(15):
                 self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
 
