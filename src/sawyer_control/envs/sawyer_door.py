@@ -27,11 +27,7 @@ class SawyerDoorEnv(SawyerEnvBase):
             goal_low = self.config.POSITION_SAFETY_BOX.low
         if goal_high is None:
                 goal_high = self.config.POSITION_SAFETY_BOX.high
-        self.use_state_based_door_angle=use_state_based_door_angle
-        if self.use_state_based_door_angle:
-            self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
-        else:
-            self.goal_space = Box(goal_low, goal_high, dtype=np.float32)
+        self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
         self.reset_free = reset_free
         if reset_pos is None:
@@ -40,21 +36,21 @@ class SawyerDoorEnv(SawyerEnvBase):
 
     @property
     def goal_dim(self):
-        if self.use_state_based_door_angle:
-            return 4 #xyz for object position, angle for door
-        else:
-            return 3 #xyz for object position
+        return 4 #xyz for object position, angle for door
 
     def set_to_goal(self, goal):
-        ''' ONLY USE FOR DEBUGGING PURPOSES / GENERATING GOAL DATASET OF IMAGES, DOES NOT SET TO CORRECT DOOR ANGLE'''
+        ''' ONLY USE FOR DEBUGGING PURPOSES / GENERATING GOAL DATASET OF IMAGES, DOES NOT SET TO CORRECT DOOR ANGLE
+            Assumes hook is in the door
+        '''
+        z = self._get_endeffector_pose()[:3][2]
         for _ in range(10):
-            self._position_act(goal[:3] - self._get_endeffector_pose()[:3])
+            self._position_act(np.concatenate((goal[:2], [z])) - self._get_endeffector_pose()[:3])
 
     def _reset_robot_and_door(self):
-        if not self.reset_free and self.use_state_based_door_angle:
-            for i in range(15):
+        if not self.reset_free:
+            for i in range(10):
                 self._position_act(np.array([-1, 0, 0]))
-            for i in range(15):
+            for i in range(20):
                 self._position_act(np.array([0, 0, 1]))
             #reset door
             dxl_ids = [1]
@@ -71,8 +67,32 @@ class SawyerDoorEnv(SawyerEnvBase):
         self._state_goal = self.sample_goal()
         return self._get_obs()
 
+    def close_door_and_hook(self):
+        for i in range(10):
+            self._position_act(np.array([-1, 0, 0]))
+        for i in range(20):
+            self._position_act(np.array([0, 0, 1]))
+        dxl_ids = [1]
+        dy = dxl(dxl_ids)
+        dy.set_des_pos_loop(dxl_ids, 12)
+        dy.set_des_pos_loop(dxl_ids, 1)
+        dy.close(dxl_ids)
+        for i in range(15):
+            self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
+        for i in range(10):
+            self._position_act(np.array([1, 0, 0]))
+        for i in range(10):
+            self._position_act(np.array([0, 0, -1]))
+
     def get_diagnostics(self, paths, prefix=''):
         return OrderedDict()
+
+    def _get_motor_pos(self):
+        dxl_ids = [1]
+        dy = dxl(dxl_ids)
+        pos = dy.get_pos(dxl_ids)
+        dy.close(dxl_ids)
+        return pos[0]
 
     def compute_rewards(self, actions, obs, goals):
         raise NotImplementedError('Use Image based reward')

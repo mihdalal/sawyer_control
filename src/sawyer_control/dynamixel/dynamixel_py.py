@@ -474,31 +474,19 @@ class dxl():
         return True
 
     def reset(self, dxl_ids):
-        for i in range(100):
-            cnt = 0
-            # set goal position
-            dxl_present_position = self.get_pos(dxl_ids)
-            goal_position = 1
+        self.set_des_pos_loop(dxl_ids, 1)
+        self.set_des_pos_loop(dxl_ids, 12)
 
+    def set_des_pos_loop(self, dxl_ids, goal_position):
+        for i in range(100):
             self.set_des_pos(dxl_ids, [goal_position])
             self.set_max_vel(dxl_ids, 100)
-
-
-        for i in range(100):
-                cnt = 0
-
-                # set goal position
-                dxl_present_position = self.get_pos(dxl_ids)
-                goal_position = 12
-
-                self.set_des_pos(dxl_ids, [goal_position])
-                self.set_max_vel(dxl_ids, 100)
 
 
 if __name__ == '__main__':
     dxl_ids =  [1]
     dy = dxl(dxl_ids)
-    dy.reset(1)
+    dy.reset(dxl_ids)
     # Close connection and exit
     dy.close(dxl_ids)
     print('successful exit')
