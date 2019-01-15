@@ -29,11 +29,14 @@ class SawyerDoorEnv(SawyerEnvBase):
                 goal_high = self.config.POSITION_SAFETY_BOX.high
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
-        self.reset_free = reset_free
         if reset_pos is None:
             reset_pos = np.array([ 0.48526675,  0.07449275,  0.41430926])
         self.reset_pos=reset_pos
         self.dy = dxl([1])
+        self.set_mode('train')
+        self.reset_free = True
+        self.reset()
+        self.reset_free = reset_free
 
     @property
     def goal_dim(self):
@@ -48,7 +51,7 @@ class SawyerDoorEnv(SawyerEnvBase):
             self._position_act(np.concatenate((goal[:2], [z])) - self._get_endeffector_pose()[:3])
 
     def _reset_robot_and_door(self):
-        if not self.reset_free:
+        if not self.reset_free or self.eval_mode == 'eval':
             for i in range(10):
                 self._position_act(np.array([-1, 0, 0]))
             for i in range(20):
@@ -67,7 +70,7 @@ class SawyerDoorEnv(SawyerEnvBase):
     def close_door_and_hook(self):
         for i in range(10):
             self._position_act(np.array([-1, 0, 0]))
-        for i in range(10):
+        for i in range(15):
             self._position_act(np.array([0, 0, 1]))
         dxl_ids = [1]
         self.dy.set_des_pos_loop(dxl_ids, 12)
@@ -100,3 +103,6 @@ class SawyerDoorEnv(SawyerEnvBase):
         img = cv2.resize(img, (0, 0), fx=width/450, fy=height/600, interpolation=cv2.INTER_AREA)
         img = np.asarray(img).reshape(width, height, 3)[::, ::, ::-1]
         return img
+
+    def set_mode(self, mode):
+        self.eval_mode = mode
