@@ -33,6 +33,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         if reset_pos is None:
             reset_pos = np.array([ 0.48526675,  0.07449275,  0.41430926])
         self.reset_pos=reset_pos
+        self.dy = dxl([1])
 
     @property
     def goal_dim(self):
@@ -54,11 +55,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                 self._position_act(np.array([0, 0, 1]))
             #reset door
             dxl_ids = [1]
-            dy = dxl(dxl_ids)
-            dy.reset(dxl_ids)
-            # Close connection and exit
-            dy.close(dxl_ids)
-            print('successful exit')
+            self.dy.reset(dxl_ids)
             for i in range(15):
                 self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
 
@@ -70,13 +67,11 @@ class SawyerDoorEnv(SawyerEnvBase):
     def close_door_and_hook(self):
         for i in range(10):
             self._position_act(np.array([-1, 0, 0]))
-        for i in range(20):
+        for i in range(10):
             self._position_act(np.array([0, 0, 1]))
         dxl_ids = [1]
-        dy = dxl(dxl_ids)
-        dy.set_des_pos_loop(dxl_ids, 12)
-        dy.set_des_pos_loop(dxl_ids, 1)
-        dy.close(dxl_ids)
+        self.dy.set_des_pos_loop(dxl_ids, 12)
+        self.dy.set_des_pos_loop(dxl_ids, 1)
         for i in range(15):
             self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
         for i in range(10):
@@ -89,9 +84,7 @@ class SawyerDoorEnv(SawyerEnvBase):
 
     def _get_motor_pos(self):
         dxl_ids = [1]
-        dy = dxl(dxl_ids)
-        pos = dy.get_pos(dxl_ids)
-        dy.close(dxl_ids)
+        pos = self.dy.get_pos(dxl_ids)
         return pos[0]
 
     def compute_rewards(self, actions, obs, goals):
