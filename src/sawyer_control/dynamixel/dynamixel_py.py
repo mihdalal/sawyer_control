@@ -1,6 +1,9 @@
 import os, ctypes
 import time
 import numpy as np
+
+from sawyer_control.configs import base_config
+
 os.sys.path.append('../dynamixel_functions_py')
 import dynamixel_functions as dynamixel                     # Uses Dynamixel SDK library
 
@@ -66,7 +69,7 @@ COMM_TX_FAIL                = -1001                         # Communication Tx F
 
 
 class dxl():
-    def __init__(self, motor_id, DEVICENAME=DEVICENAME):
+    def __init__(self, motor_id, DEVICENAME=DEVICENAME, config=base_config):
 
         self.n_motors = len(motor_id)
 
@@ -77,6 +80,7 @@ class dxl():
         # Set the port path and Get methods and members of PortHandlerLinux or PortHandlerWindows
         self.port_num = dynamixel.portHandler(DEVICENAME)
 
+        self.config=config
         # Initialize PacketHandler Structs
         dynamixel.packetHandler()
 
@@ -283,7 +287,7 @@ class dxl():
             else:
                 dxl_present_load.append(dynamixel.groupBulkReadGetData(self.group_load, dxl_id, ADDR_MX_PRESENT_LOAD, LEN_MX_PRESENT_LOAD))
 
-        print(dxl_present_load)
+        # print(dxl_present_load)
         return np.array([-load / MAX_LOAD if load <= MAX_LOAD else (load - (MAX_LOAD+1)) / MAX_LOAD for load in dxl_present_load])
 
 
@@ -474,13 +478,19 @@ class dxl():
         return True
 
     def reset(self, dxl_ids):
-        self.set_des_pos_loop(dxl_ids, 1)
         self.set_des_pos_loop(dxl_ids, 12)
+        self.set_des_pos_loop(dxl_ids, 1)
+        time.sleep(.5)
+        return self.get_pos(dxl_ids)
 
     def set_des_pos_loop(self, dxl_ids, goal_position):
+        self.engage_motor(dxl_ids, True)
         for i in range(100):
+            load = np.abs(self.get_load(dxl_ids)[0])
+            print('Load', load)
             self.set_des_pos(dxl_ids, [goal_position])
-            self.set_max_vel(dxl_ids, 100)
+            self.set_max_vel(dxl_ids, self.config.DYNAMIXEL_SPEED)
+        self.engage_motor(dxl_ids, False)
 
 
 if __name__ == '__main__':

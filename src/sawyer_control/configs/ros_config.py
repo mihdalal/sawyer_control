@@ -1,8 +1,8 @@
 from geometry_msgs.msg import Quaternion
 import numpy as np
 #JOINT_CONTROLLER_SETTINGS
-JOINT_POSITION_SPEED = .15
-JOINT_POSITION_TIMEOUT = .15
+JOINT_POSITION_SPEED = .1
+JOINT_POSITION_TIMEOUT = .2
 
 #JOINT INFO
 JOINT_NAMES = ['right_j0',

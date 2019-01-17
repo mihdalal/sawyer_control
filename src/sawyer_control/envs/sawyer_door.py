@@ -30,9 +30,11 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
         if reset_pos is None:
-            reset_pos = np.array([ 0.48526675,  0.07449275,  0.41430926])
+            reset_pos = np.array([ 0.58526675,  0.07449275,  0.41430926])
         self.reset_pos=reset_pos
-        self.dy = dxl([1])
+        self.dxl_ids = [1]
+        self.dy = dxl(self.dxl_ids, config=self.config)
+        self.reset_motor_pos=0
         self.set_mode('train')
         self.reset_free = True
         self.reset()
@@ -58,7 +60,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                 self._position_act(np.array([0, 0, 1]))
             #reset door
             dxl_ids = [1]
-            self.dy.reset(dxl_ids)
+            self.reset_motor_pos = self.dy.reset(dxl_ids)[0]
             for i in range(15):
                 self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
 
@@ -68,27 +70,32 @@ class SawyerDoorEnv(SawyerEnvBase):
         return self._get_obs()
 
     def close_door_and_hook(self):
-        for i in range(10):
-            self._position_act(np.array([-1, 0, 0]))
-        for i in range(15):
-            self._position_act(np.array([0, 0, 1]))
-        dxl_ids = [1]
-        self.dy.set_des_pos_loop(dxl_ids, 12)
-        self.dy.set_des_pos_loop(dxl_ids, 1)
-        for i in range(15):
-            self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])
+        eval_mode = self.eval_mode
+        self.eval_mode = 'eval'
+        self._reset_robot_and_door()
         for i in range(10):
             self._position_act(np.array([1, 0, 0]))
         for i in range(10):
             self._position_act(np.array([0, 0, -1]))
+        self.eval_mode = eval_mode
 
     def get_diagnostics(self, paths, prefix=''):
         return OrderedDict()
 
-    def _get_motor_pos(self):
-        dxl_ids = [1]
-        pos = self.dy.get_pos(dxl_ids)
-        return pos[0]
+    def _get_relative_motor_pos(self):
+        pos = 0
+        num_iters = 25
+        for i in range(num_iters):
+            dxl_ids = [1]
+            pos += self.dy.get_pos(dxl_ids)[0]
+        pos /= num_iters
+        return pos - self.reset_motor_pos
+
+    def disengage_dynamixel(self):
+        self.dy.engage_motor(self.dxl_ids, False)
+
+    def get_load(self):
+        return np.abs(self.dy.get_load(self.dxl_ids)[0])
 
     def compute_rewards(self, actions, obs, goals):
         raise NotImplementedError('Use Image based reward')
