@@ -30,7 +30,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
         if reset_pos is None:
-            reset_pos = np.array([ 0.58526675,  0.07449275,  0.41430926])
+            reset_pos = np.array([0.73059875,  0.12652422,  0.3279008])
         self.reset_pos=reset_pos
         self.dxl_ids = [1]
         self.dy = dxl(self.dxl_ids, config=self.config)
@@ -104,10 +104,10 @@ class SawyerDoorEnv(SawyerEnvBase):
         img = super().get_image(width=1000, height=1000)
         startcol = 350
         startrow = 200
-        endcol = startcol + 450
+        endcol = startcol + 300
         endrow = startrow + 600
         img = copy.deepcopy(img[startrow:endrow, startcol:endcol])
-        img = cv2.resize(img, (0, 0), fx=width/450, fy=height/600, interpolation=cv2.INTER_AREA)
+        img = cv2.resize(img, (0, 0), fx=width/300, fy=height/600, interpolation=cv2.INTER_AREA)
         img = np.asarray(img).reshape(width, height, 3)[::, ::, ::-1]
         return img
 

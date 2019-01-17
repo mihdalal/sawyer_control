@@ -21,7 +21,7 @@ LINK_NAMES = ['right_l2', 'right_l3', 'right_l4', 'right_l5', 'right_l6', '_hand
 
 #inside door angle
 RESET_ANGLES = np.array(
-    [0.57168555, -0.10354199, -1.68741989,  1.91788673,  1.40054691,  1.71397173, -2.56532025]
+    [0.20223731,  0.85522556, - 2.12354875,  1.59621096, - 2.52368164,  1.01539946, -2.40745807]
 )
 
 
@@ -36,5 +36,5 @@ RESET_DICT = dict(zip(JOINT_NAMES, RESET_ANGLES))
 # 	)
 
 POSITION_CONTROL_EE_ORIENTATION=Quaternion(
-    x=0.99907899, y=-0.03476779, z=-0.02298597, w=0.01019814
+    x=0.72693193, y=-0.03049006, z=0.6855942, w=-0.02451418
 )

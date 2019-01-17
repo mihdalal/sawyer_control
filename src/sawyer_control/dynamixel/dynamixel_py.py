@@ -478,8 +478,8 @@ class dxl():
         return True
 
     def reset(self, dxl_ids):
-        self.set_des_pos_loop(dxl_ids, 12)
-        self.set_des_pos_loop(dxl_ids, 1)
+        self.set_des_pos_loop(dxl_ids, 10)
+        self.set_des_pos_loop(dxl_ids, 3.3)
         time.sleep(.5)
         return self.get_pos(dxl_ids)
 
@@ -487,7 +487,8 @@ class dxl():
         self.engage_motor(dxl_ids, True)
         for i in range(100):
             load = np.abs(self.get_load(dxl_ids)[0])
-            print('Load', load)
+            if load > .9:
+                break
             self.set_des_pos(dxl_ids, [goal_position])
             self.set_max_vel(dxl_ids, self.config.DYNAMIXEL_SPEED)
         self.engage_motor(dxl_ids, False)
