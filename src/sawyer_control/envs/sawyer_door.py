@@ -30,7 +30,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
         if reset_pos is None:
-            reset_pos = np.array([0.73059875,  0.12652422,  0.3279008])
+            reset_pos = np.array([ 0.71211874,  0.04915736,  0.34243783])
         self.reset_pos=reset_pos
         self.dxl_ids = [1]
         self.dy = dxl(self.dxl_ids, config=self.config)
