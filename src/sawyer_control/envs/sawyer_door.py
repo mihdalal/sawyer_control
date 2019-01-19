@@ -36,7 +36,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.dy = dxl(self.dxl_ids, config=self.config)
         self.reset_motor_pos=0
         self.set_mode('train')
-        self.reset_free = True
+        self.reset_free = False
         self.reset()
         self.reset_free = reset_free
 
@@ -54,12 +54,13 @@ class SawyerDoorEnv(SawyerEnvBase):
 
     def _reset_robot_and_door(self):
         if not self.reset_free or self.eval_mode == 'eval':
-            for i in range(10):
+            for i in range(15):
                 self._position_act(np.array([-1, 0, 0]))
             for i in range(20):
                 self._position_act(np.array([0, 0, 1]))
             #reset door
             dxl_ids = [1]
+            print('RESETTING DOOR')
             self.reset_motor_pos = self.dy.reset(dxl_ids)[0]
             for i in range(15):
                 self._position_act(self.reset_pos - self._get_endeffector_pose()[:3])

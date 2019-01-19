@@ -16,6 +16,6 @@ env = SawyerDoorEnv(
 #     env.reset_motor_pos = env.dy.reset([1])[0]
 #     print('Relative Motor Position',env._get_relative_motor_pos())
 
-env.reset()
-print(env._get_joint_angles())
-print(env._get_obs()[14:])
+# env.reset()
+# print(env._get_joint_angles())
+# print(env._get_obs()[14:])

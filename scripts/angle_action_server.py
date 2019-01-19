@@ -9,6 +9,7 @@ def execute_action(action_msg):
     action = action_msg.angles
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
+    arm.set_joint_position_speed(ros_config.JOINT_POSITION_SPEED)
     arm.move_to_joint_positions(joint_to_values, timeout = ros_config.JOINT_POSITION_TIMEOUT)
     return angle_actionResponse(True)
 
