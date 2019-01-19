@@ -3,7 +3,6 @@ import rospy
 from sensor_msgs.msg import JointState
 import numpy as np
 import intera_interface
-from intera_interface import CHECK_VERSION
 from std_msgs.msg import Float32
 
 # from sawyer_control.configs.base_config import MAX_TORQUES
@@ -67,7 +66,7 @@ class JointSprings(object):
             t_delta = rospy.get_time() - self.t_release
             if t_delta > 0:
                 if t_delta < self.time_to_maxstiffness:
-                    self._springs[joint] = t_delta/self.time_to_maxstiffness * self.max_stiffness
+                    self._springs[joint] = t_delta/self.time_to_maxstiffness * self.max_stiffness #note if _release is never called, then this branch will never get run
                 else:
                     self._springs[joint] = self.max_stiffness
             else:
@@ -90,7 +89,7 @@ class JointSprings(object):
         cur_vel = self._limb.joint_velocities()
 
         # calculate current forces
-        for joint in self._des_angles.keys():
+        for joint in self._des_angles.keys(): #per joint torque = max_stiffness*(desired_ja-current_ja) - 2*cur_vel - clipped between min and max torques
             # spring portion
             cmd[joint] = self._springs[joint] * (self._des_angles[joint] -
                                                  cur_pos[joint])
@@ -100,12 +99,6 @@ class JointSprings(object):
         # command new joint torques
         if self._imp_ctrl_is_active:
             self._limb.set_joint_torques(cmd)
-
-    def move_to_neutral(self):
-        """
-        Moves the limb to neutral location.
-        """
-        self._limb.move_to_neutral()
 
     def attach_springs(self):
         """
@@ -129,7 +122,6 @@ def main():
 
     js = JointSprings(limb = 'right')
     # register shutdown callback
-    #rospy.on_shutdown(js.clean_shutdown)
     js.attach_springs()
 
 

@@ -4,9 +4,6 @@ import intera_interface as ii
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import *
 import numpy as np
-
-
-
 import rospy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32
@@ -28,7 +25,6 @@ class JointController(object):
         self.imp_ctrl_publisher = rospy.Publisher('/desired_joint_pos', JointState, queue_size=1)
         self.imp_ctrl_release_spring_pub = rospy.Publisher('/release_spring', Float32, queue_size=10)
 
-
     def move_with_impedance(self, des_joint_angles):
         """
         non-blocking
@@ -37,7 +33,6 @@ class JointController(object):
         js.name = self._limb.joint_names()
         js.position = [des_joint_angles[n] for n in js.name]
         self.imp_ctrl_publisher.publish(js)
-
 
     def move_with_impedance_sec(self, cmd, duration=2.0):
         jointnames = self._limb.joint_names()
@@ -61,8 +56,6 @@ def execute_action(action_msg):
     joint_to_values = dict(zip(joint_names, action))
     duration = action_msg.duration
     in_reset = action_msg.in_reset
-    if not in_reset:
-        duration = 0.45
     if joint_space_impd:
         controller.move_with_impedance_sec(joint_to_values, duration=duration)
     else:
@@ -82,8 +75,6 @@ def angle_action_server():
     controller = JointController(arm)
     s = rospy.Service('angle_action', angle_action, execute_action)
     rospy.spin()
-
-
 
 if __name__ == '__main__':
     angle_action_server()

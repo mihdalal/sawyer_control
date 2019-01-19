@@ -67,7 +67,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
         self.previous_position_target = target_ee_pos
-        target_ee_pos = np.concatenate((target_ee_pos, endeffector_angles))
+        target_ee_pos = np.concatenate((target_ee_pos, [self.config.POSITION_CONTROL_EE_ORIENTATION.x, self.config.POSITION_CONTROL_EE_ORIENTATION.y, self.config.POSITION_CONTROL_EE_ORIENTATION.z, self.config.POSITION_CONTROL_EE_ORIENTATION.w]))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         self.send_angle_action(angles, target_ee_pos, in_reset=in_reset)
 
@@ -160,15 +160,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         return is_within_threshold
 
     def _reset_robot(self):
-        self.in_reset = True
-        self._safe_move_to_neutral()
-        self.in_reset = False
-
-    def reset(self):
         if self.action_mode == "position":
             self._position_act(self.reset_pos - self._get_endeffector_pose(), in_reset=True)
-        else: 
-            self._reset_robot()
+        else:
+            self.in_reset = True
+            self._safe_move_to_neutral()
+            self.in_reset = False
+
+    def reset(self):
+        self._reset_robot()
         self._state_goal = self.sample_goal()
         return self._get_obs()
 
@@ -361,7 +361,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             print(e)
 
     def request_angle_action(self, angles, pos, in_reset=False):
-        dist = np.linalg.norm(self._get_endeffector_pose() - pos)
+        dist = np.linalg.norm(self._get_endeffector_pose() - pos[:3])
         duration = dist/self.max_speed
         rospy.wait_for_service('angle_action')
         if in_reset:
