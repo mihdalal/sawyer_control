@@ -18,11 +18,11 @@ def compute_joint_angle(req):
 
 
     pose = get_pose_stamped(ee_pos[0], ee_pos[1], ee_pos[2], Q)
-    reset_angles = np.array([0.5679873046875, -0.788544921875, -0.6379423828125,
-										1.70463671875, 0.0512109375, -0.9890234375, 0.5703583984375])
+    reset_angles = np.array([0.7231025390625, -0.019921875, -1.5107236328125,
+									  1.286544921875, 0.2815166015625, -0.6222880859375, 1.614041015625])
     reset_angles = dict(zip(joint_names, reset_angles))
     current_angles = arm.joint_angles()
-    ik_angles = get_joint_angles(pose, reset_angles, True, True)
+    ik_angles = get_joint_angles(pose, reset_angles, True, False)
     ik_angles = [ik_angles[joint] for joint in joint_names]
     return ikResponse(ik_angles)
 

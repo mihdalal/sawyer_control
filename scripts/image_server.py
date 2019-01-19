@@ -37,7 +37,7 @@ class KinectRecorder(object):
         self.ltob_aux1 = Latest_observation()
 
         self.bridge = CvBridge()
-
+        self.instance_type = 'main'
         self.get_kinectdata_func = rospy.ServiceProxy('get_kinectdata', get_kinectdata)
 
         def spin_thread():
@@ -87,10 +87,10 @@ class KinectRecorder(object):
         cv_image = copy.deepcopy(cv_image[startrow:endrow, startcol:endcol])
         if self.instance_type == 'main':
             cv_image = imutils.rotate_bound(cv_image, 180)
-        cv_image = cv_image[500:, 350:]
+        cv_image = cv_image[309:771, 357:1143]
 
-        #cv_image = cv2.resize(cv_image, (0, 0), fx=0.056, fy=0.07777777777, interpolation=cv2.INTER_AREA)
-        cv_image = cv2.resize(cv_image, (0, 0), fx=0.07304347826086957, fy=0.14482758620689656, interpolation=cv2.INTER_AREA)
+        cv_image = cv2.resize(cv_image, (0, 0), fx=0.10687022900763359, fy=0.18181818181818182, interpolation=cv2.INTER_AREA)
+        #cv_image = cv2.resize(cv_image, (0, 0), fx=0.07304347826086957, fy=0.14482758620689656, interpolation=cv2.INTER_AREA)
         return cv_image
 
     def crop_lowres(self, cv_image):

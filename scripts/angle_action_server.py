@@ -45,7 +45,7 @@ class JointController(object):
         new_joint = np.array([cmd[j] for j in jointnames])
         control_rate = rospy.Rate(self._rate)
         start_time = rospy.get_time()  # in seconds
-        finish_time = start_time + duration  # in seconds
+        finish_time = start_time + duration # in seconds
 
         while rospy.get_time() < finish_time:
             int_joints = prev_joint + (rospy.get_time()-start_time)/(finish_time-start_time)*(new_joint-prev_joint)
@@ -56,19 +56,16 @@ class JointController(object):
 
 def execute_action(action_msg):
     action = action_msg.angles
-    in_reset = action_msg.in_reset
     joint_space_impd = action_msg.joint_space_impd
     joint_names = arm.joint_names()
     joint_to_values = dict(zip(joint_names, action))
     duration = action_msg.duration
     in_reset = action_msg.in_reset
     if not in_reset:
-        duration = 0.5
-
+        duration = 0.45
     if joint_space_impd:
         controller.move_with_impedance_sec(joint_to_values, duration=duration)
     else:
-
         if not in_reset:
             t = 5
         else:

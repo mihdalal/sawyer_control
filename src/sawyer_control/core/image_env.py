@@ -57,14 +57,14 @@ class ImageEnv(ProxyEnv):
         new_obs = self._get_flat_img()
         reward = self.compute_reward(action, new_obs, self._img_goal)
         return new_obs, reward, done, info
-
-    def reset(self):
-        self.wrapped_env.reset()
-        env_state = self.wrapped_env.get_env_state()
-        self.wrapped_env.set_to_goal(self.wrapped_env.get_goal())
-        self._img_goal = self._get_flat_img()
-        self.wrapped_env.set_env_state(env_state)
-        return self._get_flat_img()
+    #
+    # def reset(self):
+    #     self.wrapped_env.reset()
+    #     env_state = self.wrapped_env.get_env_state()
+    #     self.wrapped_env.set_to_goal(self.wrapped_env.get_goal())
+    #     self._img_goal = self._get_flat_img()
+    #     self.wrapped_env.set_env_state(env_state)
+    #     return self._get_flat_img()
 
     def _get_flat_img(self):
         # returns the image as a torch format np array
@@ -90,17 +90,17 @@ class ImageEnv(ProxyEnv):
     def get_goal(self):
         return self._img_goal
 
-    def sample_goals(self, batch_size):
-        if batch_size > 1:
-            warnings.warn("Sampling goal images is very slow")
-        img_goals = np.zeros((batch_size, self.image_length))
-        goals = self.wrapped_env.sample_goals(batch_size)
-        for i, goal in enumerate(goals):
-            self.wrapped_env.set_to_goal(goal)
-            img_goals[i, :] = self._get_flat_img()
-        if batch_size == 1:
-            self.wrapped_env._goal = goals[0]
-        return img_goals
+    # def sample_goals(self, batch_size):
+    #     if batch_size > 1:
+    #         warnings.warn("Sampling goal images is very slow")
+    #     img_goals = np.zeros((batch_size, self.image_length))
+    #     goals = self.wrapped_env.sample_goals(batch_size)
+    #     for i, goal in enumerate(goals):
+    #         self.wrapped_env.set_to_goal(goal)
+    #         img_goals[i, :] = self._get_flat_img()
+    #     if batch_size == 1:
+    #         self.wrapped_env._goal = goals[0]
+    #     return img_goals
 
     def compute_rewards(self, actions, obs, goals):
         achieved_goals = obs
