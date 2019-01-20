@@ -29,7 +29,6 @@ class SawyerDoorEnv(SawyerEnvBase):
                 goal_high = self.config.POSITION_SAFETY_BOX.high
         self.goal_space = Box(np.hstack((goal_low, np.array([min_door_angle]))), np.hstack((goal_high, np.array([max_door_angle]))), dtype=np.float32)
         self._state_goal = None
-        self.reset_pos=reset_pos
         self.dxl_ids = [1]
         self.dy = dxl(self.dxl_ids, config=self.config)
         self.reset_motor_pos=0
