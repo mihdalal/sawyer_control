@@ -56,7 +56,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self._torque_act(action*self.torque_action_scale)
         return
 
-    def _position_act(self, action, in_reset=False):
+    def _position_act(self, action):
         ee_pos = self._get_endeffector_pose()
         endeffector_pos = ee_pos[:3]
         if self.previous_position_target is not None and (not self.use_compliant_controller):
@@ -158,8 +158,9 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         return is_within_threshold
 
     def _reset_robot(self):
+        print('RESETTING')
         if self.action_mode == "position":
-            self._position_act(self.reset_pos - self._get_endeffector_pose(), in_reset=True)
+            self._position_act(self.reset_pos - self._get_endeffector_pose())
         else:
             self.in_reset = True
             self._safe_move_to_neutral()
