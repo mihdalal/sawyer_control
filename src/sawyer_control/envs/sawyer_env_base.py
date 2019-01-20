@@ -13,6 +13,8 @@ from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
+import cv2
+import copy
 
 class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
@@ -283,11 +285,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             self.action_space = Box(
                 self.config.POSITION_CONTROL_LOW,
                 self.config.POSITION_CONTROL_HIGH,
+                dtype=np.float32,
             )
         else:
             self.action_space = Box(
                 self.config.JOINT_TORQUE_LOW,
-                self.config.JOINT_TORQUE_HIGH
+                self.config.JOINT_TORQUE_HIGH,
+                dtype=np.float32,
             )
 
     def _set_observation_space(self):
@@ -306,6 +310,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.observation_space = Box(
             lows,
             highs,
+            dtype=np.float32,
         )
             
     """ 
@@ -338,12 +343,14 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
-        image = np.asarray(image).reshape(84, 84, 3)
-        import scipy.misc
-        image = scipy.misc.imresize(
-            image,
-            (width, height, 3)
-        )
+        startcol = 0
+        startrow = 0
+        endcol = startcol + 1000
+        endrow = startrow + 1000
+        image = np.array(image).reshape(1000, 1000, 3)
+        image = copy.deepcopy(image[startrow:endrow, startcol:endcol])
+        image = cv2.resize(image, (0, 0), fx=width/1000, fy=height/1000, interpolation=cv2.INTER_AREA)
+        image = np.asarray(image).reshape(width, height, 3)
         return image
 
     def request_observation(self):
@@ -369,7 +376,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             return None
         except rospy.ServiceException as e:
             pass
-
 
     def request_ik_angles(self, ee_pos, joint_angles):
         rospy.wait_for_service('ik')

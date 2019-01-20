@@ -11,13 +11,17 @@ class SawyerPushXYEnv(SawyerEnvBase):
                  pause_on_reset=True,
                  action_mode='position',
                  z=.23128,
+                 goal_low=None,
+                 goal_high=None,
                  **kwargs
                 ):
         Serializable.quick_init(self, locals())
         SawyerEnvBase.__init__(self, action_mode=action_mode, **kwargs)
-        lows = self.config.POSITION_SAFETY_BOX_LOWS[:2]
-        highs = self.config.POSITION_SAFETY_BOX_HIGHS[:2]
-        self.goal_space = Box(np.concatenate((lows, lows)), np.concatenate((highs, highs)))
+        if goal_low is None:
+            goal_low = self.config.POSITION_SAFETY_BOX.low[:2]
+        if goal_high is None:
+            goal_high = self.config.POSITION_SAFETY_BOX.high[:2]
+        self.goal_space = Box(np.concatenate((goal_low, goal_low)), np.concatenate((goal_high, goal_high)), dtype=np.float32)
         self._state_goal = None
         self.pause_on_reset=pause_on_reset
         self.z = z
@@ -50,6 +54,6 @@ class SawyerPushXYEnv(SawyerEnvBase):
         return OrderedDict()
 
     def compute_rewards(self, actions, obs, goals):
-        pass
+        raise NotImplementedError('Use Image based reward')
 
 
