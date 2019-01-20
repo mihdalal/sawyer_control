@@ -71,9 +71,9 @@ class SawyerDoorEnv(SawyerEnvBase):
         eval_mode = self.eval_mode
         self.eval_mode = 'eval'
         self._reset_robot_and_door()
-        for i in range(10):
+        for i in range(15):
             self._position_act(np.array([1, 0, 0]))
-        for i in range(10):
+        for i in range(15):
             self._position_act(np.array([0, 0, -1]))
         self.eval_mode = eval_mode
 

@@ -479,7 +479,7 @@ class dxl():
 
     def reset(self, dxl_ids):
         self.set_des_pos_loop(dxl_ids, 10)
-        self.set_des_pos_loop(dxl_ids, 3.3)
+        self.set_des_pos_loop(dxl_ids, 3)
         time.sleep(.5)
         return self.get_pos(dxl_ids)
 
