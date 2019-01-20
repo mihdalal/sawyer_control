@@ -6,7 +6,7 @@ import cv2
 import time
 
 from sawyer_control.envs.sawyer_reaching import SawyerReachXYZEnv
-position_action_scale=.05
+position_action_scale=.01
 env = SawyerReachXYZEnv(action_mode='position', config_name='austri_config', position_action_scale=position_action_scale, max_speed=.1, use_compliant_position_controller=True)
 for i in range(0, 10000):
 	delta = np.random.uniform(-1, 1, 3)

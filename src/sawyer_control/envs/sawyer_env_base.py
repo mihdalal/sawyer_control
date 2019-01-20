@@ -13,7 +13,6 @@ from sawyer_control.srv import angle_action
 from sawyer_control.srv import image
 from sawyer_control.msg import actions
 import abc
-from sawyer_control.configs.ros_config import RESET_ANGLES
 
 class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def __init__(
@@ -68,7 +67,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.previous_position_target = target_ee_pos
         target_ee_pos = np.concatenate((target_ee_pos, [self.config.POSITION_CONTROL_EE_ORIENTATION.x, self.config.POSITION_CONTROL_EE_ORIENTATION.y, self.config.POSITION_CONTROL_EE_ORIENTATION.z, self.config.POSITION_CONTROL_EE_ORIENTATION.w]))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
-        self.send_angle_action(angles, target_ee_pos, in_reset=in_reset)
+        self.send_angle_action(angles, target_ee_pos)
 
     def _torque_act(self, action):
         if self.use_safety_box:
@@ -320,8 +319,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def send_action(self, action):
         self.action_publisher.publish(action)
 
-    def send_angle_action(self, action, target, in_reset=False):
-        self.request_angle_action(action, target, in_reset=in_reset)
+    def send_angle_action(self, action, target):
+        self.request_angle_action(action, target)
 
     def request_image(self):
         rospy.wait_for_service('images')
@@ -359,16 +358,13 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
-    def request_angle_action(self, angles, pos, in_reset=False):
+    def request_angle_action(self, angles, pos):
         dist = np.linalg.norm(self._get_endeffector_pose() - pos[:3])
         duration = dist/self.max_speed
         rospy.wait_for_service('angle_action')
-        if in_reset:
-            angles = RESET_ANGLES
         try:
             execute_action = rospy.ServiceProxy('angle_action', angle_action, persistent=True)
-            impd = self.action_mode == "position"
-            execute_action(angles, impd, duration, in_reset)
+            execute_action(angles, duration)
             return None
         except rospy.ServiceException as e:
             pass
