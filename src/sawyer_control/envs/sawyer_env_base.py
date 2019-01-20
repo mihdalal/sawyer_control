@@ -60,8 +60,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def _position_act(self, action, in_reset=False):
         ee_pos = self._get_endeffector_pose()
         endeffector_pos = ee_pos[:3]
-        endeffector_angles = ee_pos[3:]
-        if self.previous_position_target is not None and self.use_compliant_controller:
+        if self.previous_position_target is not None and (not self.use_compliant_controller):
             target_ee_pos = self.previous_position_target + action
         else:
             target_ee_pos = (endeffector_pos + action)
