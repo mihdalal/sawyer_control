@@ -26,7 +26,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             config_name = 'base_config',
             fix_goal=False,
             use_compliant_position_controller=False,
-            max_speed = 0.05
+            max_speed = 0.05,
+            reset_free=False,
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
@@ -50,6 +51,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         self.reset_pos = self.config.POSITION_RESET_POS
         self.previous_position_target = None
         self.use_compliant_controller = use_compliant_position_controller
+        self.reset_free = reset_free
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -160,13 +162,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         return is_within_threshold
 
     def _reset_robot(self):
-        print('RESETTING')
-        if self.action_mode == "position":
-            self._position_act(self.reset_pos - self._get_endeffector_pose())
-        else:
-            self.in_reset = True
-            self._safe_move_to_neutral()
-            self.in_reset = False
+        if not self.reset_free:
+            print('RESETTING')
+            if self.action_mode == "position":
+                for _ in range(5):
+                    self._position_act(self.reset_pos - self._get_endeffector_pose())
+            else:
+                self.in_reset = True
+                self._safe_move_to_neutral()
+                self.in_reset = False
 
     def reset(self):
         self._reset_robot()
