@@ -94,9 +94,9 @@ class SawyerDoorEnv(SawyerEnvBase):
             reset_free = self.reset_free
             self.reset_free = True
             self._reset_robot()
-            for i in range(15):
+            for i in range(5):
                 self._position_act(np.array([1, 0, 0]))
-            for i in range(15):
+            for i in range(5):
                 self._position_act(np.array([0, 0, -1]))
             self.reset_free = reset_free
 
