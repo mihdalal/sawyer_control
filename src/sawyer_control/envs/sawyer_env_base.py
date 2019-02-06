@@ -163,7 +163,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
     def _reset_robot(self):
         if not self.reset_free:
-            print('RESETTING')
             if self.action_mode == "position":
                 for _ in range(5):
                     self._position_act(self.reset_pos - self._get_endeffector_pose())
