@@ -41,9 +41,6 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.set_mode('train')
         self._state_goal = None
         reset_free = self.reset_free
-        self.reset_free = False
-        self.reset()
-        self.reset_free = reset_free
 
     @property
     def goal_dim(self):
@@ -73,17 +70,14 @@ class SawyerDoorEnv(SawyerEnvBase):
             for i in range(15):
                 self._act(self.reset_pos - self._get_endeffector_pose()[:3])
         elif self.eval_mode == 'eval' or not self.reset_free:
-            max_speed = self.max_speed
             print('RESETTING DOOR')
-            self.max_speed = .05
-            for i in range(5):
+            for i in range(15):
                 self._act(np.array([0, 0, 1]))
             print('Max Height')
-            for i in range(5):
+            for i in range(15):
                 self._act(np.array([1, 0, 0])) #push the door closed
 
             self._reset_robot()
-            self.max_speed = max_speed
             print('DONE RESETTING')
 
 
@@ -106,9 +100,9 @@ class SawyerDoorEnv(SawyerEnvBase):
             reset_free = self.reset_free
             self.reset_free = True
             self._reset_robot()
-            for i in range(5):
+            for i in range(3):
                 self._position_act(np.array([1, 0, 0]))
-            for i in range(5):
+            for i in range(3):
                 self._position_act(np.array([0, 0, -1]))
             self.reset_free = reset_free
 
