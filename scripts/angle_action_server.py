@@ -2,7 +2,7 @@
 import rospy
 import intera_interface as ii
 
-from sawyer_control.scripts.impedance_controller import ImpedanceWSGController
+from impedance_controller import ImpedanceWSGController
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import *
 import numpy as np

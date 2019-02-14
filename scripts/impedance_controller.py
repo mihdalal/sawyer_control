@@ -7,8 +7,8 @@ import os
 
 
 # constants for robot control
-from sawyer_control.scripts.interpolation import CSpline
-from sawyer_control.scripts.robot_controller import RobotController
+from interpolation import CSpline
+from robot_controller import RobotController
 
 NEUTRAL_JOINT_ANGLES = np.array([0.412271, -0.434908, -1.198768, 1.795462, 1.160788, 1.107675, -1.11748145])
 NEUTRAL_JOINT_CMD = {k:a for k, a in zip(['right_j{}'.format(i) for i in range(7)], NEUTRAL_JOINT_ANGLES)}
