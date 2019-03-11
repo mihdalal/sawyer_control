@@ -20,6 +20,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                  goal_high=None,
                  reset_pos=None,
                  use_dynamixel=False,
+                 open_door_reset=False,
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
@@ -41,6 +42,7 @@ class SawyerDoorEnv(SawyerEnvBase):
         self.set_mode('train')
         self._state_goal = None
         reset_free = self.reset_free
+        self.open_door_reset=False
 
     @property
     def goal_dim(self):
@@ -58,27 +60,47 @@ class SawyerDoorEnv(SawyerEnvBase):
             self._position_act(np.concatenate((goal[:2], [z])) - self._get_endeffector_pose()[:3])
 
     def _reset_robot_and_door(self):
-        if self.use_dynamixel and (not self.reset_free or self.eval_mode == 'eval'):
+        if self.open_door_reset and self.eval_mode == 'eval':
+            #OPEN DOOR RESET
+            self.close_door_and_hook()
+            for i in range(25):
+                self._act(np.array([-1, 0, 0]))  # pull the arm back
             for i in range(15):
-                self._act(np.array([-1, 0, 0]))
-            for i in range(15):
-                self._act(np.array([0, 0, 1]))
-            # reset door
-            dxl_ids = [1]
-            print('RESETTING DOOR')
-            self.reset_motor_pos = self.dy.reset(dxl_ids)[0]
-            for i in range(15):
-                self._act(self.reset_pos - self._get_endeffector_pose()[:3])
-        elif self.eval_mode == 'eval' or not self.reset_free:
-            print('RESETTING DOOR')
-            for i in range(15):
-                self._act(np.array([0, 0, 1]))
-            print('Max Height')
-            for i in range(15):
-                self._act(np.array([1, 0, 0])) #push the door closed
+                self._act(np.array([0, 0, 1])) #move arm up
+            for i in range(20):
+                self._act(np.array([0, -1, 0]))  # move arm to the side
+        else:
+            if self.use_dynamixel and (not self.reset_free or self.eval_mode == 'eval'):
+                for i in range(15):
+                    self._act(np.array([-1, 0, 0]))
+                for i in range(15):
+                    self._act(np.array([0, 0, 1]))
+                # reset door
+                dxl_ids = [1]
+                print('RESETTING DOOR')
+                self.reset_motor_pos = self.dy.reset(dxl_ids)[0]
+                for i in range(15):
+                    self._act(self.reset_pos - self._get_endeffector_pose()[:3])
+            elif self.eval_mode == 'eval' or not self.reset_free:
+                print('RESETTING DOOR')
+                for i in range(15):
+                    self._act(np.array([0, 0, 1])) #move arm up
+                print('Max Height')
+                for i in range(50):
+                    self._act(np.array([1, 0, 0])) #push the door closed
+                self._reset_robot()
+                for i in range(25):
+                    self._act(np.array([-1, 0, 0]))  # pull the arm back
 
-            self._reset_robot()
-            print('DONE RESETTING')
+                #difficulty v1
+                for i in range(10):
+                    self._act(np.array([0, -1, 0]))  # move to the side
+
+                #difficulty v2
+                for i in range(15):
+                    self._act(np.array([0, 0, -1])) #move arm down
+                print('DONE RESETTING')
+
 
 
     def reset(self):
@@ -100,9 +122,9 @@ class SawyerDoorEnv(SawyerEnvBase):
             reset_free = self.reset_free
             self.reset_free = True
             self._reset_robot()
-            for i in range(3):
+            for i in range(50):
                 self._position_act(np.array([1, 0, 0]))
-            for i in range(3):
+            for i in range(10):
                 self._position_act(np.array([0, 0, -1]))
             self.reset_free = reset_free
 
