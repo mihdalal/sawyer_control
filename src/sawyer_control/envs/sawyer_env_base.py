@@ -346,12 +346,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
-        startcol = 0
-        startrow = 0
-        endcol = startcol + 1000
-        endrow = startrow + 1000
         image = np.array(image).reshape(1000, 1000, 3)
-        image = copy.deepcopy(image[startrow:endrow, startcol:endcol])
+        image = copy.deepcopy(image)
         image = cv2.resize(image, (0, 0), fx=width/1000, fy=height/1000, interpolation=cv2.INTER_AREA)
         image = np.asarray(image).reshape(width, height, 3)
         return image

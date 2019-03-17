@@ -2,7 +2,7 @@
 import rospy
 import intera_interface as ii
 
-from impedance_controller import ImpedanceWSGController
+from impedance_controller import ImpedanceController
 from sawyer_control.srv import angle_action
 from sawyer_control.srv import *
 import numpy as np
@@ -66,7 +66,7 @@ def angle_action_server():
     global controller
     arm = ii.Limb('right')
     arm.set_joint_position_speed(0.1)
-    controller = ImpedanceWSGController(control_rate=1000, robot_name='austri', print_debug=True,)
+    controller = ImpedanceController(control_rate=1000, robot_name='austri', print_debug=True,)
     s = rospy.Service('angle_action', angle_action, execute_action)
     rospy.spin()
 

@@ -2,7 +2,6 @@ from collections import OrderedDict
 from gym.spaces import Box
 from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
-from sawyer_control.dynamixel.dynamixel_py import dxl
 import numpy as np
 import cv2
 import copy
