@@ -83,21 +83,21 @@ class SawyerDoorEnv(SawyerEnvBase):
                     self._act(self.reset_pos - self._get_endeffector_pose()[:3])
             elif self.eval_mode == 'eval' or not self.reset_free:
                 print('RESETTING DOOR')
-                for i in range(15):
+                for i in range(25):
                     self._act(np.array([0, 0, 1])) #move arm up
                 print('Max Height')
                 for i in range(50):
                     self._act(np.array([1, 0, 0])) #push the door closed
-                self._reset_robot()
-                for i in range(25):
+
+                for i in range(50):
                     self._act(np.array([-1, 0, 0]))  # pull the arm back
 
                 #difficulty v1
-                for i in range(10):
-                    self._act(np.array([0, -1, 0]))  # move to the side
+                # for i in range(10):
+                #     self._act(np.array([0, -1, 0]))  # move to the side
 
                 #difficulty v2
-                for i in range(15):
+                for i in range(25):
                     self._act(np.array([0, 0, -1])) #move arm down
                 print('DONE RESETTING')
 
@@ -121,9 +121,10 @@ class SawyerDoorEnv(SawyerEnvBase):
         else:
             reset_free = self.reset_free
             self.reset_free = True
-            self._reset_robot()
+            for i in range(25):
+                self._act(np.array([0, 0, 1]))  # move arm up
             for i in range(50):
-                self._position_act(np.array([1, 0, 0]))
+                self._act(np.array([1, 0, 0]))  # push the door closed
             for i in range(10):
                 self._position_act(np.array([0, 0, -1]))
             self.reset_free = reset_free
