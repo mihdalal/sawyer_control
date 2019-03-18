@@ -15,7 +15,6 @@ import rospy
 
 from sensor_msgs.msg import JointState
 
-import socket
 from intera_core_msgs.srv import (
     SolvePositionIK,
     SolvePositionIKRequest,
