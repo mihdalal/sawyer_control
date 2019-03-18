@@ -79,6 +79,7 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         self.observation_space = Box(
             lows,
             highs,
+            dtype=np.float32,
         )
 
     def get_diagnostics(self, paths, prefix=''):
