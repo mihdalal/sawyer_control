@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import numpy as np
-from gym.spaces import Box
 from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
