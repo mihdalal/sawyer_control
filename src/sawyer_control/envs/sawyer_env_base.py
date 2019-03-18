@@ -41,7 +41,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
         self._set_action_space()
         self._set_observation_space()
-        #self.get_latest_pose_jacobian_dict()
+        self.get_latest_pose_jacobian_dict()
+        
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
         self.in_reset = True
@@ -261,7 +262,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         curr_x = pose[0]
         curr_y = pose[1]
         curr_z = pose[2]
-        if(self._pose_in_box(pose)):
+        if(self._pose_in_box(pose, safety_box)):
             x, y, z = 0, 0, 0
         else:
             x, y, z = 0, 0, 0

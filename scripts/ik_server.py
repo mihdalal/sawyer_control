@@ -2,9 +2,8 @@
 from sawyer_control.srv import *
 import rospy
 import intera_interface as ii
-from sawyer_control.pd_controllers.inverse_kinematics import *
+from sawyer_control.pd_controllers.inverse_kinematics import get_pose_stamped, get_joint_angles
 from sawyer_control.configs import ros_config
-joint_names = ros_config.JOINT_NAMES
 
 def compute_joint_angle(req):
     ee_pos = req.ee_pos
@@ -19,7 +18,9 @@ def compute_joint_angle(req):
 def inverse_kinematics_server():
     rospy.init_node('ik_server', anonymous=True)
     global arm
+    global joint_names
     arm = ii.Limb('right')
+    joint_names = arm.joint_names()
     s = rospy.Service('ik', ik, compute_joint_angle)
     rospy.spin()
 
