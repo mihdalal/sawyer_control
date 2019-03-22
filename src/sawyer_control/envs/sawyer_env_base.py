@@ -336,6 +336,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         except rospy.ServiceException as e:
             print(e)
 
+    def crop_image(self, img, startcol=350, startrow=200, col_delta=300, row_delta=600):
+        endcol = startcol + col_delta
+        endrow = startrow + row_delta
+        img = copy.deepcopy(img[startrow:endrow, startcol:endcol])
+        return img
+    
     def get_image(self, width=84, height=84):
         image = self.request_image()
         if image is None:
