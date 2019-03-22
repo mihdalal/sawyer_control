@@ -1,3 +1,4 @@
 imutils
 lxml
-opencv-python --user
+scipy==1.2.1
+opencv-python
