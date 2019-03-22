@@ -23,8 +23,6 @@ class SawyerDoorEnv(SawyerEnvBase):
         if goal_high is None:
             goal_high = self.config.POSITION_SAFETY_BOX.high
         self.goal_space = Box(goal_low, goal_high, dtype=np.float32)
-
-        self.set_mode('train')
         self._state_goal = None
         reset_free = self.reset_free
 
