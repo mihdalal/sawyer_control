@@ -27,6 +27,10 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             fix_goal=False,
             max_speed = 0.05,
             reset_free=False,
+            img_start_col=350, #can range from  0-999
+            img_start_row=200, #can range from  0-999
+            img_col_delta=300, #can range from  0-999
+            img_row_delta=600, #can range from  0-999
     ):
         Serializable.quick_init(self, locals())
         MultitaskEnv.__init__(self)
@@ -50,6 +54,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
         self.pos_control_reset_position = self.config.POSITION_RESET_POS
         self.reset_free = reset_free
+
+        self.img_start_col = img_start_col
+        self.img_start_row = img_start_row
+        self.img_col_delta = img_col_delta
+        self.img_row_delta = img_row_delta
+
 
     def _act(self, action):
         if self.action_mode == 'position':
@@ -335,6 +345,12 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             )
         except rospy.ServiceException as e:
             print(e)
+
+    def crop_image(self, img):
+        endcol = self.img_start_col + self.img_col_delta
+        endrow = self.img_start_row + self.img_row_delta
+        img = copy.deepcopy(img[self.img_start_row:endrow, self.img_start_col:endcol])
+        return img
 
     def get_image(self, width=84, height=84):
         image = self.request_image()
