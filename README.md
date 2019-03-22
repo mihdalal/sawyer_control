@@ -45,7 +45,7 @@ alias kinect="roslaunch kinect2_bridge kinect2_bridge.launch"
 ## Environments
 All environments inherit from `SawyerEnvBase` which contains all of the core functionality that is central to using the Sawyer Robot including different control modes, robot state observations, and safety boxes. Note, unless you have a good reason not to, you should ALWAYS have the safety box enabled, ie set `use_safety_box=True`. This environment also provides functionality for changing various settings (see configs section) as well as having a fixed goal (as opposed to the default functionality, which is multi-goal). 
 
-There are two main control modes for the Sawyer robot, torque and position, each of which has differing functionality and settings. In terms of the actual controller, all of the actions are executed using intera's in built torque/joint position controller, and the environment merely provides an abstraction around this. For the torque control mode, changing around the `torque_action_scale` will be quite important (generally larger values around 5 or so are better) and the control frequency is 20Hz. The position control mode in the environment does end-effector position control, an option that intera does not provide. As a result, given a desired end-effector position, the environment uses inverse kinematics to compute the corresponding joint angles, and commands the intera joint angle controller to move to those angles. The position controller is a bit slow (2-5Hz control frequency) currently and gives inverse kinematics errors if the desired position is too close to the robot, so it is important to take this into account when using this mode. Additionally, the average error of the position controller is somewhere between 3-5cm from the target. We are currently working on integrating in a better position controller. 
+There are two main control modes for the Sawyer robot, torque and position, each of which has differing functionality and settings. In terms of the actual controller, all of the actions are executed using intera's in built torque/joint position controller, and the environment merely provides an abstraction around this. For the torque control mode, changing around the `torque_action_scale` will be quite important (generally larger values around 5 or so are better) and the control frequency is 20Hz. The position control mode in the environment does end-effector position control, an option that intera does not provide. As a result, given a desired end-effector position, the environment uses inverse kinematics to compute the corresponding joint angles, and commands the intera impedance controller to move to those angles. The position controller can go as fast you like (by setting the `max_speed` option in `SawyerEnvBase`). Setting higher max speeds will result in a loss of accuracy, so I would recommend testing each speed on a variety of different reaching tasks to see what level of accuracy works for you. In general, I've found anything between .1-.4 works pretty well if your action magnitudes are up to 1cm. You can set this option using `position_action_scale` in `SawyerEnvBase`. 
 
 Currently the repository holds two main environments, `SawyerReachXYZEnv` and `SawyerPushXYEnv`. For `SawyerReachXYZEnv` the goal is to reach a target end-effector position. For `SawyerPushXYEnv` the goal is to push an object to a desired position. Since the environment is in the real world, for which we don't have access to the state information of the object to push, you must wrap this environment with `ImageEnv`. See the usage section for how to to this.
 
@@ -98,15 +98,16 @@ A: Double check that you ran `exp_nodes` before running the experiment
 
 Q: I ran `exp_nodes` and the robot still doesn't move!
 
-A: run `status` and check if `Ready=False` if so the robot is in homing mode (Don't currently have a consistent fix for this)
+A: Run `status` and check if `Ready=False`. If so the robot is in homing mode (Try pressing the grey button on the robot and moving the arm around, alternatively you might just have to re-start until this error goes away. Unfortunately, I don't have a consistent fix for this). 
 
-Q: The arm is just moving upwards all the time
+Q: The arm is just moving upwards all the time in torque control mode. 
 
 A: You probably need to up the `torque_action_scale`, I recommend something like 4/5, but it depends on how safe you want the environment and how constrained your space is. The problem occurs because you are applying too small torques, so the solution is to apply larger torques. 
 
 
 ## Features:
 * Torque and Position Control Modes
-* End Effector Position Reaching Environment
+* End-Effector Reaching Environment
+* Pushing Environment
 * Vision Wrapper 
 * Gym-Style Interface 
