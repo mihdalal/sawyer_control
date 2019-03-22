@@ -25,7 +25,6 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
             position_action_scale=1/10,
             config_name = 'base_config',
             fix_goal=False,
-            use_compliant_position_controller=False,
             max_speed = 0.05,
             reset_free=False,
     ):
@@ -41,16 +40,15 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
 
         self._set_action_space()
         self._set_observation_space()
-        #self.get_latest_pose_jacobian_dict()
+        self.get_latest_pose_jacobian_dict()
+
         self.torque_action_scale = torque_action_scale
         self.position_action_scale = position_action_scale
         self.in_reset = True
         self._state_goal = None
         self.fix_goal = fix_goal
 
-        self.reset_pos = self.config.POSITION_RESET_POS
-        self.previous_position_target = None
-        self.use_compliant_controller = use_compliant_position_controller
+        self.pos_control_reset_position = self.config.POSITION_RESET_POS
         self.reset_free = reset_free
 
     def _act(self, action):
@@ -63,12 +61,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
     def _position_act(self, action):
         ee_pos = self._get_endeffector_pose()
         endeffector_pos = ee_pos[:3]
-        if self.previous_position_target is not None and (not self.use_compliant_controller):
-            target_ee_pos = self.previous_position_target + action
-        else:
-            target_ee_pos = (endeffector_pos + action)
+        target_ee_pos = (endeffector_pos + action)
         target_ee_pos = np.clip(target_ee_pos, self.config.POSITION_SAFETY_BOX_LOWS, self.config.POSITION_SAFETY_BOX_HIGHS)
-        self.previous_position_target = target_ee_pos
         target_ee_pos = np.concatenate((target_ee_pos, [self.config.POSITION_CONTROL_EE_ORIENTATION.x, self.config.POSITION_CONTROL_EE_ORIENTATION.y, self.config.POSITION_CONTROL_EE_ORIENTATION.z, self.config.POSITION_CONTROL_EE_ORIENTATION.w]))
         angles = self.request_ik_angles(target_ee_pos, self._get_joint_angles())
         self.send_angle_action(angles, target_ee_pos)
@@ -165,7 +159,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         if not self.reset_free:
             if self.action_mode == "position":
                 for _ in range(5):
-                    self._position_act(self.reset_pos - self._get_endeffector_pose())
+                    self._position_act(self.pos_control_reset_position - self._get_endeffector_pose())
             else:
                 self.in_reset = True
                 self._safe_move_to_neutral()
@@ -261,7 +255,7 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         curr_x = pose[0]
         curr_y = pose[1]
         curr_z = pose[2]
-        if(self._pose_in_box(pose)):
+        if(self._pose_in_box(pose, safety_box)):
             x, y, z = 0, 0, 0
         else:
             x, y, z = 0, 0, 0
@@ -346,12 +340,8 @@ class SawyerEnvBase(gym.Env, Serializable, MultitaskEnv, metaclass=abc.ABCMeta):
         image = self.request_image()
         if image is None:
             raise Exception('Unable to get image from image server')
-        startcol = 0
-        startrow = 0
-        endcol = startcol + 1000
-        endrow = startrow + 1000
         image = np.array(image).reshape(1000, 1000, 3)
-        image = copy.deepcopy(image[startrow:endrow, startcol:endcol])
+        image = copy.deepcopy(image)
         image = cv2.resize(image, (0, 0), fx=width/1000, fy=height/1000, interpolation=cv2.INTER_AREA)
         image = np.asarray(image).reshape(width, height, 3)
         return image
