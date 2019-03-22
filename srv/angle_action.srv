@@ -1,3 +1,4 @@
 float32[] angles
+float32 duration
 ---
 bool data

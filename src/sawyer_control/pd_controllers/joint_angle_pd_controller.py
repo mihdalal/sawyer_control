@@ -24,14 +24,15 @@ class AnglePDController(object):
         cuff_ns = 'robot/limb/right/suppress_cuff_interaction'
         self._pub_cuff_disable = rospy.Publisher(cuff_ns, Empty, queue_size=1)
 
-        self._des_angles = config.RESET_DICT
+        reset_angles = config.RESET_ANGLES
+        self.joint_names = config.JOINT_NAMES
+        self._des_angles = dict(zip(self.joint_names, reset_angles))
 
         self.max_stiffness = 20
         self.time_to_maxstiffness = .3
         self.t_release = rospy.get_time()
 
         self._imp_ctrl_is_active = True
-        self.joint_names = config.JOINT_NAMES
 
         for joint in self.joint_names:
             self._springs[joint] = 30

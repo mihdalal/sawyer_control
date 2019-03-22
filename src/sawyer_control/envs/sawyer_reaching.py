@@ -4,23 +4,39 @@ from sawyer_control.envs.sawyer_env_base import SawyerEnvBase
 from sawyer_control.core.serializable import Serializable
 from sawyer_control.core.eval_util import get_stat_in_paths, \
     create_stats_ordered_dict
+from gym.spaces import Box
 
 class SawyerReachXYZEnv(SawyerEnvBase):
     def __init__(self,
                  fixed_goal=(1, 1, 1),
                  indicator_threshold=.05,
                  reward_type='hand_distance',
+                 goal_low=None,
+                 goal_high=None,
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
         SawyerEnvBase.__init__(self, **kwargs)
-        if self.action_mode=='torque':
-            self.goal_space = self.config.TORQUE_SAFETY_BOX
+        if self.action_mode == 'torque':
+            if goal_low is None:
+                goal_low = self.config.TORQUE_SAFETY_BOX.low
+            if goal_high is None:
+                goal_high = self.config.TORQUE_SAFETY_BOX.high
         else:
-            self.goal_space = self.config.POSITION_SAFETY_BOX
+            if goal_low is None:
+                goal_low = self.config.POSITION_SAFETY_BOX.low
+            if goal_high is None:
+                goal_high = self.config.POSITION_SAFETY_BOX.high
+        self.goal_space = Box(goal_low, goal_high, dtype=np.float32)
         self.indicator_threshold=indicator_threshold
         self.reward_type = reward_type
         self._state_goal = np.array(fixed_goal)
+
+    def _get_obs(self):
+        if self.action_mode=='position':
+            return self._get_endeffector_pose()
+        else:
+            return super()._get_obs()
 
     def compute_rewards(self, actions, obs, goals):
         distances = np.linalg.norm(obs - goals, axis=1)
@@ -37,6 +53,33 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return dict(
             hand_distance=hand_distance,
             hand_success=(hand_distance<self.indicator_threshold).astype(float)
+        )
+    def _set_observation_space(self):
+        if self.action_mode=='position':
+            lows = np.hstack((
+                self.config.END_EFFECTOR_VALUE_LOW['position'],
+            ))
+            highs = np.hstack((
+                self.config.END_EFFECTOR_VALUE_HIGH['position'],
+            ))
+        else:
+            lows = np.hstack((
+                self.config.JOINT_VALUE_LOW['position'],
+                self.config.JOINT_VALUE_LOW['velocity'],
+                self.config.END_EFFECTOR_VALUE_LOW['position'],
+                self.config.END_EFFECTOR_VALUE_LOW['angle'],
+            ))
+            highs = np.hstack((
+                self.config.JOINT_VALUE_HIGH['position'],
+                self.config.JOINT_VALUE_HIGH['velocity'],
+                self.config.END_EFFECTOR_VALUE_HIGH['position'],
+                self.config.END_EFFECTOR_VALUE_HIGH['angle'],
+            ))
+
+        self.observation_space = Box(
+            lows,
+            highs,
+            dtype=np.float32,
         )
 
     def get_diagnostics(self, paths, prefix=''):
@@ -71,5 +114,6 @@ class SawyerReachXYZEnv(SawyerEnvBase):
         return obs[:, -3:]
 
     def set_to_goal(self, goal):
-        self._position_act(goal - self._get_endeffector_pose()[:3])
-
+        for _ in range(3):
+            self._position_act(goal - self._get_endeffector_pose()[:3])
+        return self._get_endeffector_pose()[:3]

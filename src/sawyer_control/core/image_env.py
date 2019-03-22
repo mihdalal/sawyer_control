@@ -6,6 +6,7 @@ from gym.spaces import Box
 
 from sawyer_control.core.serializable import Serializable
 
+
 class ProxyEnv(Serializable):
     def __init__(self, wrapped_env):
         self.quick_init(locals())
@@ -19,7 +20,6 @@ class ProxyEnv(Serializable):
         if attrname == '_serializable_initialized':
             return None
         return getattr(self._wrapped_env, attrname)
-
 
 
 class ImageEnv(ProxyEnv):
@@ -49,7 +49,7 @@ class ImageEnv(ProxyEnv):
         self.image_shape = (self.imsize, self.imsize)
         self._img_goal = None
         self.observation_space = Box(0, 1, (self.image_length,), dtype=np.float32)
-        self.reward_type=reward_type
+        self.reward_type = reward_type
         self.threshold = threshold
 
     def step(self, action):
@@ -87,6 +87,7 @@ class ImageEnv(ProxyEnv):
     """
     Multitask functions
     """
+
     def get_goal(self):
         return self._img_goal
 
@@ -106,20 +107,21 @@ class ImageEnv(ProxyEnv):
         achieved_goals = obs
         desired_goals = goals
         dist = np.linalg.norm(achieved_goals - desired_goals, axis=1)
-        if self.reward_type=='image_distance':
+        if self.reward_type == 'image_distance':
             return -dist
-        elif self.reward_type=='image_sparse':
-            return (dist<self.threshold).astype(float)-1
-        elif self.reward_type=='wrapped_env':
+        elif self.reward_type == 'image_sparse':
+            return (dist < self.threshold).astype(float) - 1
+        elif self.reward_type == 'wrapped_env':
             return self.wrapped_env.compute_rewards(actions, obs, goals)
         else:
             raise NotImplementedError()
+
 
 def normalize_image(image):
     assert image.dtype == np.uint8
     return np.float64(image) / 255.0
 
+
 def unormalize_image(image):
     assert image.dtype != np.uint8
     return np.uint8(image * 255.0)
-
