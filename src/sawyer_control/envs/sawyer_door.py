@@ -14,6 +14,7 @@ class SawyerDoorEnv(SawyerEnvBase):
                  action_mode='position',
                  goal_low=None,
                  goal_high=None,
+                 reset_free=False,
                  **kwargs
                  ):
         Serializable.quick_init(self, locals())
@@ -24,7 +25,7 @@ class SawyerDoorEnv(SawyerEnvBase):
             goal_high = self.config.POSITION_SAFETY_BOX.high
         self.goal_space = Box(goal_low, goal_high, dtype=np.float32)
         self._state_goal = None
-        reset_free = self.reset_free
+        self.reset_free = reset_free
 
     @property
     def goal_dim(self):
